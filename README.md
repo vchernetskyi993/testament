@@ -9,6 +9,7 @@ This is a POC contract. No production use intended.
   - [Why the Blockchain](#why-the-blockchain)
 - [Usage](#usage)
 - [Development](#development)
+- [Changelog](./CHANGELOG.md)
 
 ## Overview
 
@@ -80,3 +81,7 @@ npx eslint '**/*.{js,ts}' --fix
 npx prettier '**/*.{json,sol,md,ts,js}' --check
 npx prettier '**/*.{json,sol,md,ts,js}' --write
 ```
+
+On each build contract API docs are generated.
+View them in the browser of your choice: `firefox docgen/index.html`.
+Comments follow [Natspec format](https://docs.soliditylang.org/en/latest/natspec-format.html).
