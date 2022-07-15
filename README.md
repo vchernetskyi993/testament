@@ -3,10 +3,12 @@
 This is a POC contract. No production use intended.
 
 ## Table of Contents
-* [Overview](#overview)
-    * [Example use case](#example-use-case)
-    * [Why the Blockchain](#why-the-blockchain)
-* [Usage](#usage)
+
+- [Overview](#overview)
+  - [Example use case](#example-use-case)
+  - [Why the Blockchain](#why-the-blockchain)
+- [Usage](#usage)
+- [Development](#development)
 
 ## Overview
 
@@ -14,9 +16,10 @@ ERC-1155 contract that stores imaginary FTs and adds an ability for users to iss
 Their possessions will be split per testament rules in case of confirmed death.
 
 In general testament hold the following info:
-* issuer
-* inheritors and their shares
-* trusted accounts (i.e. the ones trusted to announce death of the owner)
+
+- issuer
+- inheritors and their shares
+- trusted accounts (i.e. the ones trusted to announce death of the owner)
 
 ### Example use case:
 
@@ -28,7 +31,7 @@ In general testament hold the following info:
 
 We could store our testaments in Postgres? It's common and cheap. Why bother?
 
-Blockchain is distributed, thus trustless. 
+Blockchain is distributed, thus trustless.
 Once John stores his testament, he is sure that it will work exactly the way stated in the contract.
 
 ![blockchain-network](./assets/blockchain-network.png)
@@ -46,16 +49,34 @@ Once John stores his testament, he is sure that it will work exactly the way sta
 4. Start hardhat console `npx hardhat console --network localhost`
 
 5. Variables set up:
+
 ```javascript
-// contract address from step 2
+// contract address from step 3
 const contractAddress = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512"
 .load scripts/console-helper.js
 ```
 
 6. Interact with contract:
+
 ```javascript
 // transfer 1000 GOLD from contract owner to contract user
-await testament.safeTransferFrom(owner, user, GOLD, 1000, [])
+await testament.safeTransferFrom(owner, user, GOLD, 1000, []);
 // check user's gold balance
-await testament.balanceOf(user, GOLD)
+await testament.balanceOf(user, GOLD);
+```
+
+## Development
+
+The following helper tools are used. Please, run those before raising the PR.
+
+```bash
+# hint solidity files
+npx solhint 'contracts/**/*.sol'
+npx solhint 'contracts/**/*.sol' --fix
+# hint ts files
+npx eslint '**/*.{js,ts}'
+npx eslint '**/*.{js,ts}' --fix
+# run prettier
+npx prettier '**/*.{json,sol,md,ts,js}' --check
+npx prettier '**/*.{json,sol,md,ts,js}' --write
 ```
