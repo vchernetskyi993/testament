@@ -27,6 +27,8 @@ Once John stores his testament, he is sure that it will work exactly the way sta
 
 ![blockchain-network](./assets/blockchain-network.png)
 
+[Excalidraw source](./assets/blockchain-network.excalidraw)
+
 ## Usage
 
 <!-- TODO: add usage examples -->
