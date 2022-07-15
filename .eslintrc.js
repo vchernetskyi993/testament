@@ -21,6 +21,5 @@ module.exports = {
       { ignores: ["modules"] },
     ],
     "@typescript-eslint/explicit-function-return-type": ["error"],
-    "node/no-unpublished-import": "off",
   },
 };
