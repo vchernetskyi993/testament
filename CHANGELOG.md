@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Base ERC-1155 contract
 - Localhost console usage
-- Added linters & prettier
+- Linters & prettier
+- hardhat-docgen
 
 ## [0.0.1] - 2022-07-15
 
