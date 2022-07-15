@@ -2,6 +2,12 @@
 
 This is a POC contract. No production use intended.
 
+## Table of Contents
+* [Overview](#overview)
+    * [Example use case](#example-use-case)
+    * [Why the Blockchain](#why-the-blockchain)
+* [Usage](#usage)
+
 ## Overview
 
 ERC-1155 contract that stores imaginary FTs and adds an ability for users to issue their testaments.
@@ -12,13 +18,13 @@ In general testament hold the following info:
 * inheritors and their shares
 * trusted accounts (i.e. the ones trusted to announce death of the owner)
 
-## Example use case:
+### Example use case:
 
 ![use-case](./assets/use-case.png)
 
 [Excalidraw source](./assets/use-case.excalidraw)
 
-## Why the Blockchain?
+### Why the Blockchain?
 
 We could store our testaments in Postgres? It's common and cheap. Why bother?
 
