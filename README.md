@@ -37,20 +37,22 @@ Once John stores his testament, he is sure that it will work exactly the way sta
 
 ## Usage
 
-1. Start local node: `npx hardhat node`
+1. Install dependencies: `npm i`
 
-2. Deploy `Testament` contract `npx hardhat run scripts/deploy.ts --network localhost`
+2. Start local node: `npx hardhat node`
 
-3. Start hardhat console `npx hardhat console --network localhost`
+3. Deploy `Testament` contract `npx hardhat run scripts/deploy.ts --network localhost`
 
-4. Variables set up:
+4. Start hardhat console `npx hardhat console --network localhost`
+
+5. Variables set up:
 ```javascript
 // contract address from step 2
 const contractAddress = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512"
 .load scripts/console-helper.js
 ```
 
-5. Interact with contract:
+6. Interact with contract:
 ```javascript
 // transfer 1000 GOLD from contract owner to contract user
 await testament.safeTransferFrom(owner, user, GOLD, 1000, [])
