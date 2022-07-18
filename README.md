@@ -96,6 +96,8 @@ Using Hardhat:
 npx hardhat test
 # run specific test
 npx hardhat test --grep "Should issue testament"
+# run tests with coverage
+npx hardhat coverage
 ```
 
 Using Mocha directly (works with extensions like [Mocha Test Explorer](https://marketplace.visualstudio.com/items?itemName=hbenl.vscode-mocha-test-adapter)):
