@@ -9,6 +9,7 @@ This is a POC contract. No production use intended.
   - [Why the Blockchain](#why-the-blockchain)
 - [Usage](#usage)
 - [Development](#development)
+  - [Testing](#testing)
 - [Changelog](./CHANGELOG.md)
 
 ## Overview
@@ -85,6 +86,30 @@ npx prettier '**/*.{json,sol,md,ts,js}' --write
 On each build contract API docs are generated.
 View them in the browser of your choice: `firefox docgen/index.html`.
 Comments follow [Natspec format](https://docs.soliditylang.org/en/latest/natspec-format.html).
+
+### Testing
+
+Using Hardhat:
+
+```bash
+# run full suite
+npx hardhat test
+# run specific test
+npx hardhat test --grep "Should issue testament"
+```
+
+Using Mocha directly (works with extensions like [Mocha Test Explorer](https://marketplace.visualstudio.com/items?itemName=hbenl.vscode-mocha-test-adapter)):
+
+1. Compile contracts manually: `npx hardhat compile`
+
+2. Test:
+
+```bash
+# full suite
+npx mocha
+# specific test
+npx mocha --grep "Should issue testament"
+```
 
 <!-- TODO: etherscan verification section -->
 

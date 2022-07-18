@@ -5,7 +5,7 @@ module.exports = {
     mocha: true,
     node: true,
   },
-  plugins: ["@typescript-eslint"],
+  plugins: ["@typescript-eslint", "chai-friendly"],
   extends: [
     "standard",
     "plugin:prettier/recommended",
@@ -21,5 +21,14 @@ module.exports = {
       { ignores: ["modules"] },
     ],
     "@typescript-eslint/explicit-function-return-type": ["error"],
+    "node/no-missing-import": [
+      "error",
+      {
+        tryExtensions: [".js", ".json", ".ts", ".d.ts"],
+      },
+    ],
+    "no-unused-vars": ["error", { varsIgnorePattern: "^_" }],
+    "no-unused-expressions": "off",
+    "chai-friendly/no-unused-expressions": "error",
   },
 };
