@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 /**
  * @title Testament contract
  * @notice ERC-1155 implementation. Holds FTs (GOLD, SILVER, BRONZE) and NFTs (TESTAMENT).
- *     Anyone can create one (and only one!) testament. On death notice this contract 
+ *     Anyone can create one (and only one!) testament. On death notice this contract
  *     will split FTs according to the rules defined in owner's testament.
  */
 contract Testament is ERC1155 {
@@ -33,10 +33,10 @@ contract Testament is ERC1155 {
 
   /**
    * @notice Create new testament for the sender.
-   * @param testament testament view with: 
-   *   1. inheritors - array of addresses that will inherit sender's FTs. 
+   * @param testament testament view with:
+   *   1. inheritors - array of addresses that will inherit sender's FTs.
    *   2. shares - array of integers that show how exactly to split posessions.
-   *     Sum of all shares should be 10000. It means that only 2 decimals proximity is allowed. 
+   *     Sum of all shares should be 10000. It means that only 2 decimals proximity is allowed.
    *     For example, if you want to split FTs between 2 accounts by 60.45% and 29.55%, you should send [6045, 2955] shares.
    *   3. notifiers - array of addresses that will be able to send death notice (e.g. call `announceExecution`).
    * @dev All arrays should not be empty.
@@ -66,12 +66,16 @@ contract Testament is ERC1155 {
     _mint(issuer, TESTAMENT, 1, "");
   }
 
-  function fetchTestament(address owner)
+  /**
+   * @notice Fetch testament of the provided issuer.
+   * @param issuer address
+   */
+  function fetchTestament(address issuer)
     external
     view
     returns (TestamentData memory)
   {
-    return testaments[owner];
+    return testaments[issuer];
   }
 
   /**

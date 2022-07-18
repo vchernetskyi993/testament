@@ -65,6 +65,14 @@ const contractAddress = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512"
 await testament.safeTransferFrom(owner, user, GOLD, 1000, []);
 // check user's gold balance
 await testament.balanceOf(user, GOLD);
+// create new testament
+await testament.issueTestament({
+  inheritors: [wife, son],
+  shares: [4000, 6000], // 40% to wife & 60% to son
+  notifiers: [attorney],
+});
+// fetch testament
+await testament.fetchTestament(user);
 ```
 
 ## Development

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 
+
+- issue testament
+- fetch testament
+
+### Removed
+
+- testament transfers
+
 ## [0.0.2] - 2022-07-18
 
 ### Added
