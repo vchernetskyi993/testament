@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2] - 2022-07-18
+
 ### Added
 
 - Base ERC-1155 contract
@@ -25,5 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README with business description of the project.
 - Excalidraw use case diagrams.
 
-[unreleased]: https://github.com/vchernetskyi993/testament/compare/v0.0.1...HEAD
+[unreleased]: https://github.com/vchernetskyi993/testament/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/vchernetskyi993/testament/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/vchernetskyi993/testament/releases/tag/v0.0.1
