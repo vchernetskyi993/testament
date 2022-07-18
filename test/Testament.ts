@@ -1,7 +1,10 @@
 import { ethers } from "hardhat";
-import { expect } from "chai";
+import { expect, use } from "chai";
+import chaiAsPromised from "chai-as-promised";
 import { Testament } from "../typechain-types";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+
+use(chaiAsPromised);
 
 type EmptyState = {
   contract: Testament;
@@ -42,7 +45,7 @@ describe("Testament", () => {
       };
 
       // when
-      await contract.issueTestament(input).then((r) => r.wait());
+      await contract.issueTestament(input);
 
       // then
       const {
@@ -58,18 +61,114 @@ describe("Testament", () => {
       expect(nftBalance.toNumber()).to.be.equal(1);
     });
 
-    it("Should check inheritors non empty", () => {});
+    it("Should check inheritors non empty", async () => {
+      // given
+      const {
+        contract,
+        issuer: _issuer,
+        inheritors: _inheritors,
+        notifiers,
+      } = await loadFixture(freshStateFixture);
+      const input = {
+        inheritors: [],
+        shares: [4000, 3000, 3000],
+        notifiers,
+      };
 
-    it("Inheritors and shares should have equal sizes", () => {});
+      // when+then
+      return expect(
+        contract.issueTestament(input)
+      ).to.be.eventually.rejectedWith(/empty/);
+    });
 
-    it("Should check inheritors total to 100%", () => {});
+    it("Inheritors and shares should have equal sizes", async () => {
+      // given
+      const {
+        contract,
+        issuer: _issuer,
+        inheritors,
+        notifiers,
+      } = await loadFixture(freshStateFixture);
+      const input = {
+        inheritors,
+        shares: [4000, 3000],
+        notifiers,
+      };
 
-    it("Should check notifiers not empty", () => {});
+      // when+then
+      return expect(
+        contract.issueTestament(input)
+      ).to.be.eventually.rejectedWith(/equal lengths/);
+    });
 
-    it("Should check testament isn't already present", () => {});
+    it("Should check shares total is 100%", async () => {
+      // given
+      const {
+        contract,
+        issuer: _issuer,
+        inheritors,
+        notifiers,
+      } = await loadFixture(freshStateFixture);
+      const input = {
+        inheritors,
+        shares: [4000, 3000, 2500],
+        notifiers,
+      };
+
+      // when+then
+      return expect(
+        contract.issueTestament(input)
+      ).to.be.eventually.rejectedWith(/10000/);
+    });
+
+    it("Should check notifiers not empty", async () => {
+      // given
+      const {
+        contract,
+        issuer: _issuer,
+        inheritors,
+      } = await loadFixture(freshStateFixture);
+      const input = {
+        inheritors,
+        shares: [4000, 3000, 3000],
+        notifiers: [],
+      };
+
+      // when+then
+      return expect(
+        contract.issueTestament(input)
+      ).to.be.eventually.rejectedWith(/empty/);
+    });
+
+    it("Should check testament isn't already present", async () => {
+      // given
+      const {
+        contract,
+        issuer: _issuer,
+        inheritors,
+        notifiers,
+      } = await loadFixture(freshStateFixture);
+      const input = {
+        inheritors,
+        shares: [4000, 3000, 3000],
+        notifiers,
+      };
+
+      // when
+      await contract.issueTestament(input);
+
+      // then
+      return expect(
+        contract.issueTestament(input)
+      ).to.be.eventually.rejectedWith(/already issued/);
+    });
   });
 
   describe("Transfer Testament", () => {
+    it("Should transfer FTs", () => {});
+
+    it("Should batch transfer FTs", () => {});
+
     it("Should not transfer testament", () => {});
 
     it("Should not batch transfer testaments", () => {});

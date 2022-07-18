@@ -15,6 +15,8 @@ contract Testament is ERC1155 {
   uint256 public constant BRONZE = 2;
   uint256 public constant TESTAMENT = 3;
 
+  uint16 public constant SHARES_TOTAL = 10000;
+
   struct TestamentData {
     address[] inheritors;
     uint16[] shares;
@@ -44,7 +46,22 @@ contract Testament is ERC1155 {
       Emits 'TestementIssued' event.
   */
   function issueTestament(TestamentData calldata testament) external {
+    require(testament.inheritors.length > 0, "Inheritors should not be empty");
+    require(
+      testament.inheritors.length == testament.shares.length,
+      "Inheritors and shares should have equal lengths"
+    );
+    uint16 shareSum = 0;
+    for (uint16 i = 0; i < testament.shares.length; i++) {
+      shareSum += testament.shares[i];
+    }
+    require(shareSum == SHARES_TOTAL, "Shares should sum up to 10000");
+    require(testament.notifiers.length > 0, "Notifiers should not be empty");
     address issuer = msg.sender;
+    require(
+      testaments[issuer].inheritors.length == 0,
+      "Testament is already issued"
+    );
     testaments[issuer] = testament;
     _mint(issuer, TESTAMENT, 1, "");
   }
