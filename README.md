@@ -85,3 +85,9 @@ npx prettier '**/*.{json,sol,md,ts,js}' --write
 On each build contract API docs are generated.
 View them in the browser of your choice: `firefox docgen/index.html`.
 Comments follow [Natspec format](https://docs.soliditylang.org/en/latest/natspec-format.html).
+
+<!-- TODO: etherscan verification section -->
+
+<!-- TODO: testnet deployment section -->
+
+<!-- TODO: deployment & usage prices estimations section -->
