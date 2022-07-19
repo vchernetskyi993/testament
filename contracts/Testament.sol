@@ -36,6 +36,7 @@ contract Testament is ERC1155 {
 
     event TestamentIssued(address issuer);
     event ExecutionAnnounced(address issuer, address announcer);
+    event ExecutionDeclined(address issuer, address announcer);
 
     constructor() ERC1155("") {
         _mint(msg.sender, GOLD, 10**9, "");
@@ -80,6 +81,7 @@ contract Testament is ERC1155 {
             testaments[issuer].inheritors.length == 0,
             "Testament is already issued"
         );
+
         testaments[issuer] = inputToData(testament);
         _mint(issuer, TESTAMENT, 1, "");
         emit TestamentIssued(issuer);
@@ -137,11 +139,13 @@ contract Testament is ERC1155 {
     function announceExecution(address issuer) external {
         address announcer = msg.sender;
         TestamentData storage data = testaments[issuer];
+
         require(data.announcedAt == 0, "Execution is already announced");
         require(
             contains(data.notifiers, announcer),
             "Announcer is not trusted"
         );
+
         data.announcedAt = block.timestamp;
         data.announcedBy = announcer;
         emit ExecutionAnnounced(issuer, announcer);
@@ -153,7 +157,18 @@ contract Testament is ERC1155 {
      *   Testament should not be executed yet.
      *   Emits 'ExecutionCanceled' event.
      */
-    function cancelExecution() external {}
+    function declineExecution() external {
+        address issuer = msg.sender;
+        TestamentData storage data = testaments[issuer];
+        address announcer = data.announcedBy;
+
+        require(data.announcedAt != 0, "Testament is not announced");
+        // TODO: validate testament is not executed
+
+        data.announcedAt = 0;
+        data.announcedBy = address(0);
+        emit ExecutionDeclined(issuer, announcer);
+    }
 
     function inputToData(TestamentInput calldata input)
         private

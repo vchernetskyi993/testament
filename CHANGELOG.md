@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fetch testament
 - Solidity prettierrc
 - announce testament execution
+- decline testament execution
 
 ### Removed
 

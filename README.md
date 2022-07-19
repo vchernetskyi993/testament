@@ -73,11 +73,15 @@ await testament.issueTestament({
 });
 // fetch testament
 await testament.fetchTestament(user);
+// announce testament execution
+await testament.connect(attorneySigner).announceExecution(user);
+// decline testament execution
+await testament.declineExecution();
 ```
 
 ## Development
 
-Contracts follow official [Solidity style guide](https://docs.soliditylang.org/en/v0.8.9/style-guide.html). 
+Contract follows official [Solidity style guide](https://docs.soliditylang.org/en/v0.8.9/style-guide.html).
 Please, review it and follow in your PRs.
 
 The following helper tools are used. Please, run those before raising the PR.

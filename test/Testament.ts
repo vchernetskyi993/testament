@@ -4,7 +4,7 @@ import chaiAsPromised from "chai-as-promised";
 import { Testament } from "../typechain-types";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { ContractReceipt, ContractTransaction, Event } from "ethers";
+import { constants, ContractReceipt, ContractTransaction, Event } from "ethers";
 
 use(chaiAsPromised);
 
@@ -48,13 +48,22 @@ describe("Testament", () => {
     const state = await freshStateFixture();
     return {
       ...state,
-      contract: await state.contract.connect(state.issuerSigner),
+      contract: state.contract.connect(state.issuerSigner),
     };
   }
 
   async function issuedTestamentFixture(): Promise<State> {
     const state = await issuerCallerFixture();
     await issueTestament(state);
+    return state;
+  }
+
+  async function executionAnnouncedFixture(): Promise<State> {
+    const state = await issuedTestamentFixture();
+    const contract = state.contract.connect(state.notifierSigner);
+    const timestamp = new Date().getTime();
+    await time.setNextBlockTimestamp(timestamp);
+    await contract.announceExecution(state.issuer);
     return state;
   }
 
@@ -220,9 +229,9 @@ describe("Testament", () => {
     it("Should announce testament execution", async () => {
       // given
       const state = await loadFixture(issuedTestamentFixture);
-      const contract = await state.contract.connect(state.notifierSigner);
+      const contract = state.contract.connect(state.notifierSigner);
       const timestamp = new Date().getTime();
-      time.setNextBlockTimestamp(timestamp);
+      await time.setNextBlockTimestamp(timestamp);
 
       // when
       const receipt = await contract
@@ -245,7 +254,7 @@ describe("Testament", () => {
     it("Should check if account is trusted to announce", async () => {
       // given
       const state = await loadFixture(issuedTestamentFixture);
-      const contract = await state.contract.connect(state.inheritorSigner);
+      const contract = state.contract.connect(state.inheritorSigner);
 
       // when+then
       return expect(
@@ -256,13 +265,51 @@ describe("Testament", () => {
     it("Execution should not be already announced", async () => {
       // given
       const state = await loadFixture(issuedTestamentFixture);
-      const contract = await state.contract.connect(state.notifierSigner);
+      const contract = state.contract.connect(state.notifierSigner);
       await contract.announceExecution(state.issuer);
 
       // when+then
       return expect(
         contract.announceExecution(state.issuer)
       ).to.be.rejectedWith(/announced/);
+    });
+  });
+
+  describe("Cancel Execution", () => {
+    it("Should decline announcement", async () => {
+      // given
+      const state = await loadFixture(executionAnnouncedFixture);
+
+      // when
+      const receipt = await state.contract
+        .declineExecution()
+        .then((t) => t.wait());
+
+      // then
+      const { executed, announcedAt, announcedBy } =
+        await state.contract.fetchTestament(state.issuer);
+      expect(executed).to.be.false;
+      expect(announcedAt.toNumber()).to.be.equal(0);
+      expect(announcedBy).to.be.equal(constants.AddressZero);
+
+      const { issuer, announcer } = getEvent(receipt, "ExecutionDeclined")
+        ?.args as any as { issuer: string; announcer: string };
+      expect(issuer).to.be.equal(state.issuer);
+      expect(announcer).to.be.equal(state.notifiers[0]);
+    });
+
+    it("Testament execution should be announced to decline", async () => {
+      // given
+      const state = await loadFixture(issuedTestamentFixture);
+
+      // when+then
+      return expect(state.contract.declineExecution()).to.be.rejectedWith(
+        /not announced/
+      );
+    });
+
+    xit("Testament should not be already executed", async () => {
+      // TODO: test when execution is in place
     });
   });
 
