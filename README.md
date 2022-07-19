@@ -84,7 +84,7 @@ await testament.declineExecution();
 Contract follows official [Solidity style guide](https://docs.soliditylang.org/en/v0.8.9/style-guide.html).
 Please, review it and follow in your PRs.
 
-The following helper tools are used. Please, run those before raising the PR.
+The following helper tools are used. Please, run them before raising the PR.
 
 ```bash
 # hint solidity files
