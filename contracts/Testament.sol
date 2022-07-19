@@ -21,6 +21,7 @@ contract Testament is ERC1155 {
         address[] inheritors;
         uint16[] shares;
         address[] notifiers;
+        uint256 executionDelay;
     }
 
     struct TestamentData {
@@ -30,6 +31,7 @@ contract Testament is ERC1155 {
         bool executed;
         uint256 announcedAt;
         address announcedBy;
+        uint256 executionDelay;
     }
 
     mapping(address => TestamentData) private testaments;
@@ -37,6 +39,7 @@ contract Testament is ERC1155 {
     event TestamentIssued(address issuer);
     event ExecutionAnnounced(address issuer, address announcer);
     event ExecutionDeclined(address issuer, address announcer);
+    event TestamentExecuted(address issuer);
 
     constructor() ERC1155("") {
         _mint(msg.sender, GOLD, 10**9, "");
@@ -140,7 +143,7 @@ contract Testament is ERC1155 {
         address announcer = msg.sender;
         TestamentData storage data = testaments[issuer];
 
-        require(data.announcedAt == 0, "Execution is already announced");
+        require(!isAnnounced(data), "Execution is already announced");
         require(
             contains(data.notifiers, announcer),
             "Announcer is not trusted"
@@ -162,12 +165,68 @@ contract Testament is ERC1155 {
         TestamentData storage data = testaments[issuer];
         address announcer = data.announcedBy;
 
-        require(data.announcedAt != 0, "Testament is not announced");
-        // TODO: validate testament is not executed
+        require(isAnnounced(data), "Testament is not announced");
+        require(!data.executed, "Testament is already executed");
 
         data.announcedAt = 0;
         data.announcedBy = address(0);
         emit ExecutionDeclined(issuer, announcer);
+    }
+
+    /**
+     * @notice Execute testament rules (i.e. splits issuer's FTs).
+     *   After 'executionDelay' time has passed anyone can trigger this function.
+     * @dev Testament should be announced.
+     *   Execution delay should pass.
+     *   Testament should not be executed yet.
+     *   Emits 'TestamentExecuted' event.
+     */
+    function execute(address issuer) external {
+        TestamentData storage data = testaments[issuer];
+
+        require(isAnnounced(data), "Testament is not announced");
+        require(
+            data.announcedAt + data.executionDelay < block.timestamp,
+            "Delay before exectution has not passed"
+        );
+        require(!data.executed, "Testament is already executed");
+
+        uint256[] memory tokens = fungibleTokens();
+        for (uint256 i = 0; i < tokens.length; i++) {
+            distributeFungibleToken(issuer, tokens[i], data);
+        }
+        data.executed = true;
+        emit TestamentExecuted(issuer);
+    }
+
+    function distributeFungibleToken(
+        address issuer,
+        uint256 token,
+        TestamentData memory data
+    ) private {
+        uint256 balance = balanceOf(issuer, token);
+        for (uint256 i = 0; i < data.inheritors.length; i++) {
+            address inheritor = data.inheritors[i];
+            uint16 share = data.shares[i];
+            uint256 transfer = (balance * share) / SHARES_TOTAL;
+            _safeTransferFrom(issuer, inheritor, token, transfer, "");
+        }
+    }
+
+    function fungibleTokens() private pure returns (uint256[] memory) {
+        uint256[] memory result = new uint256[](3);
+        result[0] = GOLD;
+        result[1] = SILVER;
+        result[2] = BRONZE;
+        return result;
+    }
+
+    function isAnnounced(TestamentData memory data)
+        private
+        pure
+        returns (bool)
+    {
+        return data.announcedAt != 0;
     }
 
     function inputToData(TestamentInput calldata input)
@@ -182,7 +241,8 @@ contract Testament is ERC1155 {
                 input.notifiers,
                 false,
                 0,
-                address(0)
+                address(0),
+                input.executionDelay
             );
     }
 

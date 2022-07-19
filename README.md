@@ -54,15 +54,18 @@ Once John stores his testament, he is sure that it will work exactly the way sta
 
 ```javascript
 // contract address from step 3
-const contractAddress = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512"
+const contractAddress = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512";
 .load scripts/console-helper.js
 ```
 
 6. Interact with contract:
 
 ```javascript
-// transfer 1000 GOLD from contract owner to contract user
-await testament.safeTransferFrom(owner, user, GOLD, 1000, []);
+// transfer 1000 GOLD from contract deployer to contract user
+// prettier-ignore
+(await testament
+  .connect(deployerSigner)
+  .safeTransferFrom(deployer, user, GOLD, 1000, []));
 // check user's gold balance
 await testament.balanceOf(user, GOLD);
 // create new testament
@@ -70,6 +73,7 @@ await testament.issueTestament({
   inheritors: [wife, son],
   shares: [4000, 6000], // 40% to wife & 60% to son
   notifiers: [attorney],
+  executionDelay: 3600, // 1 hour
 });
 // fetch testament
 await testament.fetchTestament(user);
@@ -77,6 +81,11 @@ await testament.fetchTestament(user);
 await testament.connect(attorneySigner).announceExecution(user);
 // decline testament execution
 await testament.declineExecution();
+// execute statement
+await time.increase(3610); // forward 1 hour 10 seconds
+await testament.execute(user);
+await testament.balanceOf(wife, GOLD);
+await testament.balanceOf(son, GOLD);
 ```
 
 ## Development

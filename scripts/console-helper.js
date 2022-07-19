@@ -1,7 +1,9 @@
-const [_owner, userSigner, _wife, _son, attorneySigner] =
+const { time } = require("@nomicfoundation/hardhat-network-helpers");
+
+const [deployerSigner, userSigner, _wife, _son, attorneySigner] =
   await ethers.getSigners();
 
-const [owner, user, wife, son, attorney] = await ethers
+const [deployer, user, wife, son, attorney] = await ethers
   .getSigners()
   .then((signers) => Promise.all(signers.map((signer) => signer.getAddress())));
 

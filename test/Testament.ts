@@ -5,12 +5,16 @@ import { Testament } from "../typechain-types";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { constants, ContractReceipt, ContractTransaction, Event } from "ethers";
+import dayjs from "dayjs";
+import duration from "dayjs/plugin/duration";
 
 use(chaiAsPromised);
+dayjs.extend(duration);
 
 type State = {
   contract: Testament;
   deployer: string;
+  deployerSignature: SignerWithAddress;
   issuer: string;
   issuerSigner: SignerWithAddress;
   inheritors: [string, string, string];
@@ -40,6 +44,7 @@ describe("Testament", () => {
       shares: [4000, 3000, 3000],
       notifiers: [await n0.getAddress()],
       deployer: await deployer.getAddress(),
+      deployerSignature: deployer,
       notifierSigner: n0,
     };
   }
@@ -55,15 +60,6 @@ describe("Testament", () => {
   async function issuedTestamentFixture(): Promise<State> {
     const state = await issuerCallerFixture();
     await issueTestament(state);
-    return state;
-  }
-
-  async function executionAnnouncedFixture(): Promise<State> {
-    const state = await issuedTestamentFixture();
-    const contract = state.contract.connect(state.notifierSigner);
-    const timestamp = new Date().getTime();
-    await time.setNextBlockTimestamp(timestamp);
-    await contract.announceExecution(state.issuer);
     return state;
   }
 
@@ -230,7 +226,9 @@ describe("Testament", () => {
       // given
       const state = await loadFixture(issuedTestamentFixture);
       const contract = state.contract.connect(state.notifierSigner);
-      const timestamp = new Date().getTime();
+      const timestamp = await time
+        .latest()
+        .then((t) => dayjs.unix(t).add(1, "minute").unix());
       await time.setNextBlockTimestamp(timestamp);
 
       // when
@@ -278,7 +276,8 @@ describe("Testament", () => {
   describe("Cancel Execution", () => {
     it("Should decline announcement", async () => {
       // given
-      const state = await loadFixture(executionAnnouncedFixture);
+      const state = await loadFixture(issuedTestamentFixture);
+      await announceExecution(state);
 
       // when
       const receipt = await state.contract
@@ -308,8 +307,100 @@ describe("Testament", () => {
       );
     });
 
-    xit("Testament should not be already executed", async () => {
-      // TODO: test when execution is in place
+    it("Testament should not be already executed", async () => {
+      // given
+      const state = await loadFixture(issuedTestamentFixture);
+      await announceExecution(state);
+      await time.increase(dayjs.duration({ days: 2 }).asSeconds());
+      await state.contract.execute(state.issuer);
+
+      // when+then
+      return expect(state.contract.declineExecution()).to.be.rejectedWith(
+        /executed/
+      );
+    });
+  });
+
+  describe("Execute", () => {
+    it("Should execute testament", async () => {
+      // given
+      const state = await loadFixture(issuedTestamentFixture);
+      await announceExecution(state);
+      const { contract } = state;
+      await state.contract
+        .connect(state.deployerSignature)
+        .safeBatchTransferFrom(
+          state.deployer,
+          state.issuer,
+          [contract.GOLD(), contract.SILVER()],
+          [3000, 7000],
+          []
+        );
+      await time.increase(dayjs.duration({ days: 2 }).asSeconds());
+
+      // when
+      const receipt = await contract
+        .execute(state.issuer)
+        .then((t) => t.wait());
+
+      // then
+      const { executed } = await contract.fetchTestament(state.issuer);
+      expect(executed).to.be.true;
+
+      const { issuer } = getEvent(receipt, "TestamentExecuted")
+        ?.args as any as { issuer: string; announcer: string };
+      expect(issuer).to.be.equal(state.issuer);
+
+      return Promise.all(
+        state.inheritors.map(async (inheritor, i) => {
+          const share = state.shares[i];
+          const goldBalance = await contract.balanceOf(
+            inheritor,
+            contract.GOLD()
+          );
+          expect(goldBalance.toNumber()).to.be.equal((3000 * share) / 10000);
+          const silverBalance = await contract.balanceOf(
+            inheritor,
+            contract.SILVER()
+          );
+          expect(silverBalance.toNumber()).to.be.equal((7000 * share) / 10000);
+        })
+      );
+    });
+
+    it("Testament execution should be announced to execute", async () => {
+      // given
+      const state = await loadFixture(issuedTestamentFixture);
+      await time.increase(dayjs.duration({ days: 2 }).asSeconds());
+
+      // when+then
+      return expect(state.contract.execute(state.issuer)).to.be.rejectedWith(
+        /not announced/
+      );
+    });
+
+    it("Delay should pass for execution", async () => {
+      // given
+      const state = await loadFixture(issuedTestamentFixture);
+      await announceExecution(state);
+
+      // when+then
+      return expect(state.contract.execute(state.issuer)).to.be.rejectedWith(
+        /not passed/
+      );
+    });
+
+    it("Testament should not be already executed", async () => {
+      // given
+      const state = await loadFixture(issuedTestamentFixture);
+      await announceExecution(state);
+      await time.increase(dayjs.duration({ days: 2 }).asSeconds());
+      await state.contract.execute(state.issuer);
+
+      // when+then
+      return expect(state.contract.execute(state.issuer)).to.be.rejectedWith(
+        /executed/
+      );
     });
   });
 
@@ -325,7 +416,15 @@ describe("Testament", () => {
       inheritors: inputOptions?.inheritors || state.inheritors,
       shares: inputOptions?.shares || state.shares,
       notifiers: inputOptions?.notifiers || state.notifiers,
+      executionDelay: dayjs.duration({ days: 1 }).asSeconds(),
     });
+  }
+
+  async function announceExecution(state: State): Promise<void> {
+    await time.increase(dayjs.duration({ minutes: 1 }).asSeconds());
+    await state.contract
+      .connect(state.notifierSigner)
+      .announceExecution(state.issuer);
   }
 
   function getEvent(receipt: ContractReceipt, type: string): Event | undefined {
