@@ -17,15 +17,25 @@ contract Testament is ERC1155 {
 
     uint16 public constant SHARES_TOTAL = 10000;
 
-    struct TestamentData {
+    struct TestamentInput {
         address[] inheritors;
         uint16[] shares;
         address[] notifiers;
     }
 
+    struct TestamentData {
+        address[] inheritors;
+        uint16[] shares;
+        address[] notifiers;
+        bool executed;
+        uint256 announcedAt;
+        address announcedBy;
+    }
+
     mapping(address => TestamentData) private testaments;
 
     event TestamentIssued(address issuer);
+    event ExecutionAnnounced(address issuer, address announcer);
 
     constructor() ERC1155("") {
         _mint(msg.sender, GOLD, 10**9, "");
@@ -47,7 +57,7 @@ contract Testament is ERC1155 {
      *   Testament should not already exist.
      *   Emits 'TestementIssued' event.
      */
-    function issueTestament(TestamentData calldata testament) external {
+    function issueTestament(TestamentInput calldata testament) external {
         require(
             testament.inheritors.length > 0,
             "Inheritors should not be empty"
@@ -70,7 +80,7 @@ contract Testament is ERC1155 {
             testaments[issuer].inheritors.length == 0,
             "Testament is already issued"
         );
-        testaments[issuer] = testament;
+        testaments[issuer] = inputToData(testament);
         _mint(issuer, TESTAMENT, 1, "");
         emit TestamentIssued(issuer);
     }
@@ -115,5 +125,62 @@ contract Testament is ERC1155 {
             require(ids[i] != TESTAMENT, "Testaments are non-transferable");
         }
         super.safeBatchTransferFrom(from, to, ids, amounts, data);
+    }
+
+    /**
+     * @notice Notify blockchain network about the death of the testament issuer.
+     * @param issuer address
+     * @dev Message sender should be one of the trusted accounts.
+     *   Testament should not be already announced.
+     *   Emits 'ExecutionAnnounced' event.
+     */
+    function announceExecution(address issuer) external {
+        address announcer = msg.sender;
+        TestamentData storage data = testaments[issuer];
+        require(data.announcedAt == 0, "Execution is already announced");
+        require(
+            contains(data.notifiers, announcer),
+            "Announcer is not trusted"
+        );
+        data.announcedAt = block.timestamp;
+        data.announcedBy = announcer;
+        emit ExecutionAnnounced(issuer, announcer);
+    }
+
+    /**
+     * @notice Decline announcement of your death.
+     * @dev Message sender should be the issuer of announced testament.
+     *   Testament should not be executed yet.
+     *   Emits 'ExecutionCanceled' event.
+     */
+    function cancelExecution() external {}
+
+    function inputToData(TestamentInput calldata input)
+        private
+        pure
+        returns (TestamentData memory)
+    {
+        return
+            TestamentData(
+                input.inheritors,
+                input.shares,
+                input.notifiers,
+                false,
+                0,
+                address(0)
+            );
+    }
+
+    function contains(address[] memory arr, address item)
+        private
+        pure
+        returns (bool)
+    {
+        for (uint256 i = 0; i < arr.length; i++) {
+            if (arr[i] == item) {
+                return true;
+            }
+        }
+        return false;
     }
 }
