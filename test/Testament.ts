@@ -4,6 +4,7 @@ import chaiAsPromised from "chai-as-promised";
 import { Testament } from "../typechain-types";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { ContractReceipt, Event } from "ethers";
 
 use(chaiAsPromised);
 
@@ -68,7 +69,9 @@ describe("Testament", () => {
       };
 
       // when
-      await contract.issueTestament(input);
+      const receipt = await contract
+        .issueTestament(input)
+        .then((t) => t.wait());
 
       // then
       const {
@@ -82,6 +85,10 @@ describe("Testament", () => {
 
       const nftBalance = await contract.balanceOf(issuer, contract.TESTAMENT());
       expect(nftBalance.toNumber()).to.be.equal(1);
+
+      expect(getEvent(receipt, "TestamentIssued")?.args?.issuer).to.be.equal(
+        issuer
+      );
     });
 
     it("Should check inheritors non empty", async () => {
@@ -248,4 +255,8 @@ describe("Testament", () => {
       ).to.be.rejectedWith(/non-transferable/);
     });
   });
+
+  function getEvent(receipt: ContractReceipt, type: string): Event | undefined {
+    return receipt.events?.find((e) => e.event === type)!;
+  }
 });
