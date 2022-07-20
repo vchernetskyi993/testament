@@ -44,6 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Excalidraw use case diagrams.
 
 [unreleased]: https://github.com/vchernetskyi993/testament/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/vchernetskyi993/testament/compare/v0.0.1...v0.1.0
+[0.1.0]: https://github.com/vchernetskyi993/testament/compare/v0.0.2...v0.1.0
 [0.0.2]: https://github.com/vchernetskyi993/testament/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/vchernetskyi993/testament/releases/tag/v0.0.1
