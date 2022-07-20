@@ -88,6 +88,12 @@ await testament.balanceOf(wife, GOLD);
 await testament.balanceOf(son, GOLD);
 ```
 
+<!-- TODO: issue #3: etherscan verification section -->
+
+<!-- TODO: issue #1: testnet deployment section -->
+
+<!-- TODO: issue #4: deployment & usage prices estimations section -->
+
 ## Development
 
 Contract follows official [Solidity style guide](https://docs.soliditylang.org/en/v0.8.9/style-guide.html).
@@ -136,9 +142,3 @@ npx mocha
 # specific test
 npx mocha --grep "Should issue testament"
 ```
-
-<!-- TODO: etherscan verification section -->
-
-<!-- TODO: testnet deployment section -->
-
-<!-- TODO: deployment & usage prices estimations section -->

@@ -55,6 +55,7 @@ contract Testament is ERC1155 {
      *     Sum of all shares should be 10000. It means that only 2 decimals proximity is allowed.
      *     For example, if you want to split FTs between 2 accounts by 60.45% and 29.55%, you should send [6045, 2955] shares.
      *   3. notifiers - array of addresses that will be able to send death notice (e.g. call `announceExecution`).
+     *   4. executionDelay - seconds should pass after announcement before execution
      * @dev All arrays should not be empty.
      *   Inheritors should have the same length as shares.
      *   Shares should sum up to 10000.
@@ -101,6 +102,14 @@ contract Testament is ERC1155 {
     {
         return testaments[issuer];
     }
+
+    // TODO: issue #5: revoke testament
+
+    // TODO: issue #6: update inheritors
+
+    // TODO: issue #7: update execution delay
+
+    // TODO: issue #8: update notifiers
 
     /**
      * @dev See {IERC1155-safeTransferFrom}. Disabled testament transfers.
