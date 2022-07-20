@@ -113,6 +113,7 @@ contract Testament is ERC1155 {
         bytes memory data
     ) public virtual override {
         require(id != TESTAMENT, "Testaments are non-transferable");
+        require(!testaments[to].executed, "Target account should be alive");
         super.safeTransferFrom(from, to, id, amount, data);
     }
 
@@ -129,6 +130,7 @@ contract Testament is ERC1155 {
         for (uint256 i = 0; i < ids.length; i++) {
             require(ids[i] != TESTAMENT, "Testaments are non-transferable");
         }
+        require(!testaments[to].executed, "Target account should be alive");
         super.safeBatchTransferFrom(from, to, ids, amounts, data);
     }
 

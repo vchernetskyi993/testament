@@ -219,6 +219,48 @@ describe("Testament", () => {
         )
       ).to.be.rejectedWith(/non-transferable/);
     });
+
+    it("Should not transfer FTs to dead issuer", async () => {
+      // given
+      const state = await loadFixture(issuedTestamentFixture);
+      await announceExecution(state);
+      await time.increase(dayjs.duration({ days: 2 }).asSeconds());
+      await state.contract.execute(state.issuer);
+
+      // when+then
+      return expect(
+        state.contract
+          .connect(state.deployerSignature)
+          .safeTransferFrom(
+            state.deployer,
+            state.issuer,
+            state.contract.GOLD(),
+            1000,
+            []
+          )
+      ).to.be.rejectedWith(/alive/);
+    });
+
+    it("Should not batch transfer FTs to dead issuer", async () => {
+      // given
+      const state = await loadFixture(issuedTestamentFixture);
+      await announceExecution(state);
+      await time.increase(dayjs.duration({ days: 2 }).asSeconds());
+      await state.contract.execute(state.issuer);
+
+      // when+then
+      return expect(
+        state.contract
+          .connect(state.deployerSignature)
+          .safeBatchTransferFrom(
+            state.deployer,
+            state.issuer,
+            [state.contract.BRONZE(), state.contract.GOLD()],
+            [9000, 1000],
+            []
+          )
+      ).to.be.rejectedWith(/alive/);
+    });
   });
 
   describe("Announce Execution", () => {
