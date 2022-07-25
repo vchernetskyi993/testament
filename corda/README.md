@@ -1,4 +1,4 @@
-# Corda5 Cordapp Template 
+# Corda Testament
 
 [//]: # (TODO: add app overview)
 
