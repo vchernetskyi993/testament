@@ -17,9 +17,12 @@ import net.corda.v5.application.services.json.JsonMarshallingService
 import net.corda.v5.application.services.json.parseJson
 import net.corda.v5.application.services.persistence.PersistenceService
 import net.corda.v5.base.annotations.Suspendable
+import net.corda.v5.base.util.seconds
 import net.corda.v5.ledger.contracts.Command
+import net.corda.v5.ledger.contracts.StateAndRef
 import net.corda.v5.ledger.contracts.requireThat
 import net.corda.v5.ledger.services.NotaryLookupService
+import net.corda.v5.ledger.services.vault.IdentityStateAndRefPostProcessor
 import net.corda.v5.ledger.transactions.SignedTransaction
 import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
@@ -64,14 +67,19 @@ class IssueTestamentFlow @JsonConstructor constructor(
         val input = jsonMarshallingService.parseJson<TestamentInput>(params.parametersInJson)
 
         val provider = flowIdentity.ourIdentity
-        // TODO: try requireThat here
-        if (provider.name.organisation != "TestamentProvider") {
-            throw FlowException("Only TestamentProvider can issue testaments")
+        requireThat {
+            "Only TestamentProvider can issue testaments" using
+                    (provider.name.organisation == "TestamentProvider")
+            "Testament for the issuer ${input.issuer} already exists." using
+                    persistenceService.query<StateAndRef<TestamentState>>(
+                        "TestamentSchemaV1.PersistentTestament.findByIssuerId",
+                        mapOf("issuerId" to input.issuer.toLong()),
+                        IdentityStateAndRefPostProcessor.POST_PROCESSOR_NAME,
+                    ).poll(1, 20.seconds).values.isEmpty()
         }
-        // TODO: check that testament owner is unique
-        //  can we use externalId?
         val notary = notaryLookup.getNotary(CordaX500Name.parse("C=US, L=New York, O=Notary"))!!
-        val government = identityService.partyFromName(CordaX500Name.parse("C=US, L=New York, O=Government"))!!
+        val government =
+            identityService.partyFromName(CordaX500Name.parse("C=US, L=New York, O=Government"))!!
 
         // Stage 1.
         // Generate an unsigned transaction.

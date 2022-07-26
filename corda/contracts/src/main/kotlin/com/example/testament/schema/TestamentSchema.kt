@@ -27,19 +27,6 @@ object TestamentSchemaV1 : MappedSchema(
     class PersistentTestament(
         @Column(name = "issuer_id")
         var issuerId: Long?,
-
-//        @Column(name="planetary_only")
-//        var planetaryOnly: Boolean,
-//
-//        @Column(name = "launcher")
-//        var launcherName: String,
-//
-//        @Column(name = "target")
-//        var targetName: String,
-//
-//        @Column(name = "linear_id")
-//        @Convert(converter = UUIDConverter::class)
-//        var linearId: UUID
     ) : PersistentState() {
         // Default constructor required by hibernate.
         constructor() : this(null)

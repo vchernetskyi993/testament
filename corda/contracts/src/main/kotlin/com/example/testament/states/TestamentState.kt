@@ -5,6 +5,7 @@ import com.example.testament.schema.TestamentSchemaV1
 import com.google.gson.Gson
 import net.corda.v5.application.identity.Party
 import net.corda.v5.application.utilities.JsonRepresentable
+import net.corda.v5.base.annotations.CordaSerializable
 import net.corda.v5.ledger.UniqueIdentifier
 import net.corda.v5.ledger.contracts.BelongsToContract
 import net.corda.v5.ledger.contracts.LinearState
@@ -33,19 +34,19 @@ data class TestamentState(
 
     override val linearId = UniqueIdentifier(externalId = issuer.toString())
 
-    override fun toJsonString(): String = Gson()
-        .toJson(
-            TestamentStateDto(
-                linearId.id,
-                linearId.externalId!!,
-                inheritors.mapKeys { it.key.toString() },
-                provider.name.toString(),
-                approver.name.toString(),
-                executed
-            )
-        )
+    override fun toJsonString(): String = Gson().toJson(toDto())
+
+    fun toDto() = TestamentStateDto(
+        linearId.id,
+        linearId.externalId!!,
+        inheritors.mapKeys { it.key.toString() },
+        provider.name.toString(),
+        approver.name.toString(),
+        executed
+    )
 }
 
+@CordaSerializable
 data class TestamentStateDto(
     val id: UUID,
     val issuer: String,
