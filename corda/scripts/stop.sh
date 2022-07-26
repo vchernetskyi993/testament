@@ -1,3 +1,3 @@
 #!/bin/sh
 
-corda-cli network terminate -n missionmars-network -ry
+corda-cli network terminate -n testament-network -ry

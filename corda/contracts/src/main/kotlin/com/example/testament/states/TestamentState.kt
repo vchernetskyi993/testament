@@ -15,8 +15,8 @@ import java.util.UUID
 
 @BelongsToContract(TestamentContract::class)
 data class TestamentState(
-    val issuer: Long,
-    val inheritors: Map<Long, Int>,
+    val issuer: String,
+    val inheritors: Map<String, Int>,
     val provider: Party,
     val approver: Party,
     val executed: Boolean = false,
@@ -32,14 +32,14 @@ data class TestamentState(
 
     override fun supportedSchemas() = listOf(TestamentSchemaV1)
 
-    override val linearId = UniqueIdentifier(externalId = issuer.toString())
+    override val linearId = UniqueIdentifier()
 
     override fun toJsonString(): String = Gson().toJson(toDto())
 
     fun toDto() = TestamentStateDto(
         linearId.id,
-        linearId.externalId!!,
-        inheritors.mapKeys { it.key.toString() },
+        issuer,
+        inheritors,
         provider.name.toString(),
         approver.name.toString(),
         executed

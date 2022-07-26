@@ -1,6 +1,13 @@
 # Corda Testament
 
-[//]: # (TODO: add app overview)
+[Ethereum Testament](../ethereum) adopted for Corda. 
+
+[//]: # (TODO: include diagram)
+
+Network consists of 3 organisations:
+* Provider - issue/update/revoke testaments
+* Bank - holds user tokens; distributes them on testament execution
+* Government - confirms all operations; triggers testament execution
 
 ## Environment Requirements:
 
@@ -21,12 +28,15 @@ To generate compose file: `corda-cli network deploy -n testament-network -f test
 
 Get node ports: `corda-cli network status -n testament-network`.
 
+Setup variables:
 ```bash
 PROVIDER_PORT=12112
 PROVIDER_USER=testamentadmin
 PROVIDER_PASSWORD=Password1!
+```
 
-# issue testament
+Issue testament:
+```bash
 curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/startflow" \
   -u $PROVIDER_USER:$PROVIDER_PASSWORD \
   --insecure \
@@ -36,17 +46,23 @@ curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/startfl
         "clientId": "ffeb26aa-f060-4f83-9d59-07074302819f",
         "flowName": "com.example.testament.flows.IssueTestamentFlow",
         "parameters": {
-            "parametersInJson": "{\"issuer\": \"0\", \"inheritors\": {\"1\":\"6000\",\"2\":\"4000\"}}"
+            "parametersInJson": "{\"issuer\":\"0\",\"inheritors\": {\"1\":6000,\"2\":4000}}"
         }
     }
 }' | jq
+```
 
-# check flow result
-curl --request GET "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/flowoutcome/3995299e-83e5-40f7-9456-7f3e47942518" \
+Check flow result:
+```bash
+FLOW_ID=3995299e-83e5-40f7-9456-7f3e47942518 # flowId.uuid from startflow response
+
+curl --request GET "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/flowoutcome/$FLOW_ID" \
   --insecure \
   -u $PROVIDER_USER:$PROVIDER_PASSWORD | jq
+```
   
-# fetch testament by issuer
+Fetch testament by issuer
+```bash
 curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/persistence/query" \
   --insecure \
   -u $PROVIDER_USER:$PROVIDER_PASSWORD \
@@ -55,7 +71,7 @@ curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/persistence/query" 
     "request": {
         "namedParameters": {
             "issuerId": {
-                "parametersInJson": "\"0\""
+                "parametersInJson": "0"
             }
         },
         "queryName": "TestamentSchemaV1.PersistentTestament.findByIssuerId",
@@ -74,5 +90,3 @@ For API docs consult Swagger: `https://localhost:<port>/api/v1/swagger`.
 ## Clean up
 
 Stop the network: `./scripts/stop.sh`.
-
-If you want to remove old network state: `rm -rf ~/.corda/testament-network`.

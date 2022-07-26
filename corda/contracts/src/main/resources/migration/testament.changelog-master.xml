@@ -7,7 +7,7 @@
         <createTable tableName="testament_states">
             <column name="output_index" type="INT"/>
             <column name="transaction_id" type="NVARCHAR(128)"/>
-            <column name="issuer_id" type="BIGINT"/>
+            <column name="issuer_id" type="NVARCHAR(128)"/>
         </createTable>
     </changeSet>
 </databaseChangeLog>

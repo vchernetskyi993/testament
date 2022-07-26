@@ -26,9 +26,9 @@ object TestamentSchemaV1 : MappedSchema(
     @Table(name = "testament_states")
     class PersistentTestament(
         @Column(name = "issuer_id")
-        var issuerId: Long?,
+        var issuerId: String,
     ) : PersistentState() {
         // Default constructor required by hibernate.
-        constructor() : this(null)
+        constructor() : this("")
     }
 }

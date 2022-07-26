@@ -73,7 +73,7 @@ class IssueTestamentFlow @JsonConstructor constructor(
             "Testament for the issuer ${input.issuer} already exists." using
                     persistenceService.query<StateAndRef<TestamentState>>(
                         "TestamentSchemaV1.PersistentTestament.findByIssuerId",
-                        mapOf("issuerId" to input.issuer.toLong()),
+                        mapOf("issuerId" to input.issuer),
                         IdentityStateAndRefPostProcessor.POST_PROCESSOR_NAME,
                     ).poll(1, 20.seconds).values.isEmpty()
         }
@@ -84,8 +84,8 @@ class IssueTestamentFlow @JsonConstructor constructor(
         // Stage 1.
         // Generate an unsigned transaction.
         val testamentState = TestamentState(
-            input.issuer.toLong(),
-            input.inheritors.mapKeys { it.key.toLong() },
+            input.issuer,
+            input.inheritors,
             provider,
             government,
         )
