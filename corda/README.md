@@ -1,10 +1,11 @@
 # Corda Testament
 
-[Ethereum Testament](../ethereum) adopted for Corda. 
+[Ethereum Testament](../ethereum) adopted for Corda.
 
 [//]: # (TODO: include diagram)
 
 Network consists of 3 organisations:
+
 * Provider - issue/update/revoke testaments
 * Bank - holds user tokens; distributes them on testament execution
 * Government - confirms all operations; triggers testament execution
@@ -22,13 +23,15 @@ at [here](https://docs.r3.com/en/platform/corda/5.0-dev-preview-1/getting-starte
 
 Utility script is provided: `./scripts/start.sh`. It starts network nodes, builds and deploys application.
 
-To generate compose file: `corda-cli network deploy -n testament-network -f testament-network.yaml > docker-compose.yaml`.
+To generate compose
+file: `corda-cli network deploy -n testament-network -f testament-network.yaml > docker-compose.yaml`.
 
 ## Interact with the app
 
 Get node ports: `corda-cli network status -n testament-network`.
 
 Setup variables:
+
 ```bash
 PROVIDER_PORT=12112
 PROVIDER_USER=testamentadmin
@@ -36,6 +39,7 @@ PROVIDER_PASSWORD=Password1!
 ```
 
 Issue testament:
+
 ```bash
 curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/startflow" \
   -u $PROVIDER_USER:$PROVIDER_PASSWORD \
@@ -53,6 +57,7 @@ curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/startfl
 ```
 
 Check flow result:
+
 ```bash
 FLOW_ID=3995299e-83e5-40f7-9456-7f3e47942518 # flowId.uuid from startflow response
 
@@ -60,8 +65,9 @@ curl --request GET "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/flowoutc
   --insecure \
   -u $PROVIDER_USER:$PROVIDER_PASSWORD | jq
 ```
-  
+
 Fetch testament by issuer
+
 ```bash
 curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/persistence/query" \
   --insecure \
@@ -86,6 +92,11 @@ curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/persistence/query" 
 ```
 
 For API docs consult Swagger: `https://localhost:<port>/api/v1/swagger`.
+
+## Testing
+
+We use only integration tests. They require local network running and artifact deployed.
+Check out `scripts/start.sh` for details.
 
 ## Clean up
 

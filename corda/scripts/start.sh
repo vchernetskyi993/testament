@@ -9,34 +9,26 @@ if ! java -version 2>&1 | grep -Eq ".*11\..*\..*"; then
   exit 1
 fi
 
-infoln "--- Configure the network. ---"
+infoln "--- Starting the network. ---"
 corda-cli network config docker-compose testament-network
-
-infoln "--- Creating docker compose yaml file and starting docker containers. ---"
 corda-cli network deploy -n testament-network -f testament-network.yaml | docker-compose -f - up -d
-
-infoln "--- Listening to the docker processes. ---"
 corda-cli network wait -n testament-network
 
+infoln "--- Deploying package ---"
 # Note: we're skipping tests, because they require local network
-infoln "--- Building projects. ---"
 ./gradlew clean build -x test
 
-infoln "--- Creating cpb file. ---"
 mkdir -p build/libs
 cordapp-builder create \
   --cpk contracts/build/libs/testament-contracts-1.0-SNAPSHOT-cordapp.cpk \
   --cpk workflows/build/libs/testament-workflows-1.0-SNAPSHOT-cordapp.cpk \
   -o build/libs/testament.cpb
 
-infoln "--- Install the cpb file into the network. ---"
 corda-cli package install -n testament-network build/libs/testament.cpb
-
-infoln "--- Listening to the docker processes. ---"
 corda-cli network wait -n testament-network
 
 infoln "--- Running tests ---"
 ./gradlew test
 
-infoln "+++ Cordapp Setup Finished, Nodes Status: +++"
+infoln "+++ Cordapp setup verified. Nodes status: +++"
 corda-cli network status -n testament-network
