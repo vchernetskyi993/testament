@@ -3,67 +3,130 @@ package com.example.testament.flows
 import com.google.gson.Gson
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import kong.unirest.HttpResponse
 import kong.unirest.HttpStatus
 import kong.unirest.JsonNode
 import kong.unirest.Unirest
+import kong.unirest.UnirestInstance
 import kong.unirest.json.JSONObject
 import net.corda.test.dev.network.Credentials
 import net.corda.test.dev.network.TestNetwork
 import net.corda.test.dev.network.withFlow
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.util.UUID
 
 private const val NETWORK = "testament-network"
-private const val PROVIDER_NODE = "TestamentProvider"
-private const val PROVIDER_USER = "testamentadmin"
-private const val PROVIDER_PASSWORD = "Password1!"
+private const val PROVIDER = "TestamentProvider"
+
+private val credentials = mapOf(
+    PROVIDER to Credentials("testamentadmin", "Password1!"),
+)
+
+typealias FlowId = String
 
 class TestamentTest {
 
     @BeforeAll
     fun beforeAll() {
         TestNetwork.forNetwork(NETWORK).verify {
-            hasNode(PROVIDER_NODE).withFlow<IssueTestamentFlow>()
+            hasNode(PROVIDER).withFlow<IssueTestamentFlow>()
             hasNode("Government").withFlow<IssueTestamentFlow>()
         }
     }
 
-    @Test
-    fun `Should issue testament`() {
+    @Nested
+    inner class IssueTestament {
+        @Test
+        fun `Should issue testament`() = withNode(PROVIDER) {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+
+            // when
+            startFlow(
+                flowName = IssueTestamentFlow::class.java.name,
+                parametersInJson = mapOf(
+                    "issuer" to issuerId,
+                    "inheritors" to inheritors,
+                ).toJson(),
+            )
+
+            // then
+            val stored = retrieveTestament(issuerId)
+            stored["issuer"] shouldBe issuerId
+            stored.getJSONObject("inheritors").toMap() shouldBe inheritors
+        }
+
+        @Test
+        fun `Should check inheritors non empty`() = withNode(PROVIDER) {
+            // given+when
+            startFlow(
+                flowName = IssueTestamentFlow::class.java.name,
+                parametersInJson = mapOf(
+                    "issuer" to UUID.randomUUID().toString(),
+                    "inheritors" to mapOf<String, Int>(),
+                ).toJson()
+            ) {
+                // then
+                failure(it, "empty")
+            }
+        }
+
+        @Test
+        fun `Should check shares total is 100 percent`() = withNode(PROVIDER) {
+            // given+when
+            startFlow(
+                flowName = IssueTestamentFlow::class.java.name,
+                parametersInJson = mapOf(
+                    "issuer" to UUID.randomUUID().toString(),
+                    "inheritors" to mapOf("1" to 6000, "2" to 4500),
+                ).toJson(),
+            ) {
+                // then
+                failure(it, "10000")
+            }
+        }
+
+        @Test
+        fun `Should check testament isn't already present`() = withNode(PROVIDER) {
+            // given
+            val input = mapOf(
+                "issuer" to UUID.randomUUID().toString(),
+                "inheritors" to mapOf("1" to 6000, "2" to 4000),
+            ).toJson()
+            startFlow(
+                flowName = IssueTestamentFlow::class.java.name,
+                parametersInJson = input,
+            )
+
+            // when
+            startFlow(
+                flowName = IssueTestamentFlow::class.java.name,
+                parametersInJson = input,
+            ) {
+                // then
+                failure(it, "already exists")
+            }
+        }
+    }
+
+    // TODO: execute testament
+
+    // TODO: update testament
+
+    // TODO: revoke testament
+
+    private fun withNode(name: String, action: UnirestInstance.() -> Unit) {
         TestNetwork.forNetwork(NETWORK).use {
-            getNode(PROVIDER_NODE).httpRpc(Credentials(PROVIDER_USER, PROVIDER_PASSWORD)) {
-                val issuerId = UUID.randomUUID().toString()
-                val inheritors = mapOf("1" to 6000, "2" to 4000)
-                val flowId = with(
-                    startFlow(
-                        flowName = IssueTestamentFlow::class.java.name,
-                        parametersInJson = mapOf(
-                            "issuer" to issuerId,
-                            "inheritors" to inheritors,
-                        ).toJson()
-                    )
-                ) {
-                    status shouldBe HttpStatus.OK
-                    val flowId = body.`object`["flowId"] as JSONObject
-                    flowId shouldNotBe null
-                    flowId["uuid"] as String
-                }
-                eventually {
-                    with(retrieveOutcome(flowId)) {
-                        status shouldBe HttpStatus.OK
-                        body.`object`.get("status") shouldBe "COMPLETED"
-                    }
-                }
-                with(retrieveOutcome(flowId)) {
-                    status shouldBe HttpStatus.OK
-                    body.`object`.get("status") shouldBe "COMPLETED"
-                }
-                val stored = retrieveTestament(issuerId)
-                stored["issuer"] shouldBe issuerId
-                stored.getJSONObject("inheritors").toMap() shouldBe inheritors
+            getNode(name).httpRpc(
+                credentials[name]
+                    ?: throw IllegalStateException("No credentials for node $name")
+            ) {
+                action()
             }
         }
     }
@@ -74,7 +137,8 @@ class TestamentTest {
         flowName: String,
         parametersInJson: String,
         clientId: String = UUID.randomUUID().toString(),
-    ): HttpResponse<JsonNode> {
+        outcome: (FlowId) -> Unit = ::success,
+    ) {
         val body = mapOf(
             "rpcStartFlowRequest" to mapOf(
                 "flowName" to flowName,
@@ -82,11 +146,35 @@ class TestamentTest {
                 "parameters" to mapOf("parametersInJson" to parametersInJson)
             )
         )
-        val request = Unirest.post("flowstarter/startflow")
+        val response = Unirest.post("flowstarter/startflow")
             .header("Content-Type", "application/json")
             .body(body)
+            .asJson()
 
-        return request.asJson()
+        response.status shouldBe HttpStatus.OK
+        val flowId = response.body.`object`.getJSONObject("flowId")
+        flowId shouldNotBe null
+        outcome(flowId.getString("uuid"))
+    }
+
+    private fun success(flowId: FlowId) {
+        eventually {
+            with(retrieveOutcome(flowId)) {
+                status shouldBe HttpStatus.OK
+                body.`object`["status"] shouldBe "COMPLETED"
+            }
+        }
+    }
+
+    private fun failure(flowId: FlowId, message: String) {
+        eventually {
+            with(retrieveOutcome(flowId)) {
+                status shouldBe HttpStatus.OK
+                body.`object`["status"] shouldBe "FAILED"
+                body.`object`.getJSONObject("exceptionDigest")
+                    .getString("message") shouldContain message
+            }
+        }
     }
 
     private fun retrieveOutcome(flowId: String): HttpResponse<JsonNode> {
@@ -147,5 +235,4 @@ class TestamentTest {
 
         throw AssertionError("Test failed with \"${lastFailure?.message}\" after $duration; attempted $times times")
     }
-
 }
