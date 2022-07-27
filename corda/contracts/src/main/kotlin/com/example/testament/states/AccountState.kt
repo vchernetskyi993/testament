@@ -1,7 +1,7 @@
 package com.example.testament.states
 
-import com.example.testament.contracts.TestamentContract
-import com.example.testament.schema.TestamentSchemaV1
+import com.example.testament.contracts.AccountContract
+import com.example.testament.schema.AccountSchemaV1
 import com.google.gson.Gson
 import net.corda.v5.application.identity.Party
 import net.corda.v5.application.utilities.JsonRepresentable
@@ -11,47 +11,43 @@ import net.corda.v5.ledger.contracts.BelongsToContract
 import net.corda.v5.ledger.contracts.LinearState
 import net.corda.v5.ledger.schemas.QueryableState
 import net.corda.v5.persistence.MappedSchema
+import java.math.BigInteger
 import java.util.UUID
 
-@BelongsToContract(TestamentContract::class)
-data class TestamentState(
-    val issuer: String,
-    val inheritors: Map<String, Int>,
-    val provider: Party,
+@BelongsToContract(AccountContract::class)
+data class AccountState(
+    val holder: String,
+    val amount: BigInteger,
+    val bank: Party,
     val approver: Party,
-    val executed: Boolean = false,
-) : LinearState, JsonRepresentable, QueryableState, ToDto<TestamentStateDto> {
-    override val participants = listOf(provider, approver)
+) : LinearState, JsonRepresentable, QueryableState, ToDto<AccountStateDto> {
+    override val participants = listOf(bank, approver)
 
     override fun generateMappedObject(schema: MappedSchema) = when (schema) {
-        is TestamentSchemaV1 -> TestamentSchemaV1.PersistentTestament(
-            issuer,
-        )
+        is AccountSchemaV1 -> AccountSchemaV1.PersistentAccount(holder)
         else -> throw IllegalArgumentException("Unrecognised schema $schema")
     }
 
-    override fun supportedSchemas() = listOf(TestamentSchemaV1)
+    override fun supportedSchemas() = listOf(AccountSchemaV1)
 
     override val linearId = UniqueIdentifier()
 
     override fun toJsonString(): String = Gson().toJson(toDto())
 
-    override fun toDto() = TestamentStateDto(
+    override fun toDto() = AccountStateDto(
         linearId.id,
-        issuer,
-        inheritors,
-        provider.name.toString(),
+        holder,
+        amount.toString(),
+        bank.name.toString(),
         approver.name.toString(),
-        executed
     )
 }
 
 @CordaSerializable
-data class TestamentStateDto(
+data class AccountStateDto(
     val id: UUID,
-    val issuer: String,
-    val inheritors: Map<String, Int>,
+    val holder: String,
+    val amount: String,
     val provider: String,
     val approver: String,
-    val executed: Boolean,
 )

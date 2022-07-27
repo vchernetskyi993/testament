@@ -9,10 +9,6 @@ import net.corda.v5.ledger.transactions.LedgerTransaction
 import net.corda.v5.ledger.transactions.outputsOfType
 
 class TestamentContract : Contract {
-    companion object {
-        const val ID = "com.example.testament.contracts.TestamentContract"
-    }
-
     override fun verify(tx: LedgerTransaction) {
         val command = tx.commands.requireSingleCommand<Commands>()
         val output = tx.outputsOfType<TestamentState>().single()

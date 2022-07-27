@@ -19,12 +19,16 @@ Network consists of 3 organisations:
 You can find detailed instructions for steps 2 - 3
 at [here](https://docs.r3.com/en/platform/corda/5.0-dev-preview-1/getting-started/overview.html)
 
-## Local start up
+## Local network
 
 Utility script is provided: `./scripts/start.sh`. It starts network nodes, builds and deploys application.
 
 To generate compose
 file: `corda-cli network deploy -n testament-network -f testament-network.yaml > docker-compose.yaml`.
+
+### Clean up
+
+Stop the network: `./scripts/stop.sh`.
 
 ## Interact with the app
 
@@ -91,13 +95,15 @@ curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/persistence/query" 
 }' | jq '.positionedValues[0].value.json | fromjson'
 ```
 
+[//]: # (TODO: add store gold example)
+
 For API docs consult Swagger: `https://localhost:<port>/api/v1/swagger`.
 
-## Testing
+## Development
+
+[//]: # (TODO: include smart contract structure)
+
+### Testing
 
 We use only integration tests. They require local network running and artifact deployed.
 Check out `scripts/start.sh` for details.
-
-## Clean up
-
-Stop the network: `./scripts/stop.sh`.

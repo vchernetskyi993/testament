@@ -20,7 +20,7 @@ object TestamentSchemaV1 : MappedSchema(
 
     @Entity
     @NamedQuery(
-        name = "TestamentSchemaV1.PersistentTestament.findByIssuerId",
+        name = PersistentTestament.BY_ISSUER,
         query = "from com.example.testament.schema.TestamentSchemaV1\$PersistentTestament where issuerId = :issuerId"
     )
     @Table(name = "testament_states")
@@ -28,6 +28,9 @@ object TestamentSchemaV1 : MappedSchema(
         @Column(name = "issuer_id")
         var issuerId: String,
     ) : PersistentState() {
+        companion object {
+            const val BY_ISSUER = "TestamentSchemaV1.PersistentTestament.findByIssuerId"
+        }
         // Default constructor required by hibernate.
         constructor() : this("")
     }

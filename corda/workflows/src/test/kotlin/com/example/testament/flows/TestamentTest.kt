@@ -1,5 +1,8 @@
 package com.example.testament.flows
 
+import com.example.testament.processor.AccountPostProcessor
+import com.example.testament.processor.TestamentPostProcessor
+import com.example.testament.processor.ToDtoPostProcessor
 import com.google.gson.Gson
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -18,12 +21,15 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.util.UUID
+import kotlin.reflect.KClass
 
 private const val NETWORK = "testament-network"
 private const val PROVIDER = "TestamentProvider"
+private const val BANK = "Bank"
 
 private val credentials = mapOf(
     PROVIDER to Credentials("testamentadmin", "Password1!"),
+    BANK to Credentials("bankadmin", "Password1!"),
 )
 
 typealias FlowId = String
@@ -47,13 +53,7 @@ class TestamentTest {
             val inheritors = mapOf("1" to 6000, "2" to 4000)
 
             // when
-            startFlow(
-                flowName = IssueTestamentFlow::class.java.name,
-                parametersInJson = mapOf(
-                    "issuer" to issuerId,
-                    "inheritors" to inheritors,
-                ).toJson(),
-            )
+            issueTestament(issuerId, inheritors)
 
             // then
             val stored = retrieveTestament(issuerId)
@@ -64,13 +64,7 @@ class TestamentTest {
         @Test
         fun `Should check inheritors non empty`() = withNode(PROVIDER) {
             // given+when
-            startFlow(
-                flowName = IssueTestamentFlow::class.java.name,
-                parametersInJson = mapOf(
-                    "issuer" to UUID.randomUUID().toString(),
-                    "inheritors" to mapOf<String, Int>(),
-                ).toJson()
-            ) {
+            issueTestament(UUID.randomUUID().toString(), mapOf()) {
                 // then
                 failure(it, "empty")
             }
@@ -79,12 +73,9 @@ class TestamentTest {
         @Test
         fun `Should check shares total is 100 percent`() = withNode(PROVIDER) {
             // given+when
-            startFlow(
-                flowName = IssueTestamentFlow::class.java.name,
-                parametersInJson = mapOf(
-                    "issuer" to UUID.randomUUID().toString(),
-                    "inheritors" to mapOf("1" to 6000, "2" to 4500),
-                ).toJson(),
+            issueTestament(
+                UUID.randomUUID().toString(),
+                mapOf("1" to 6000, "2" to 4500),
             ) {
                 // then
                 failure(it, "10000")
@@ -94,31 +85,134 @@ class TestamentTest {
         @Test
         fun `Should check testament isn't already present`() = withNode(PROVIDER) {
             // given
-            val input = mapOf(
-                "issuer" to UUID.randomUUID().toString(),
-                "inheritors" to mapOf("1" to 6000, "2" to 4000),
-            ).toJson()
-            startFlow(
-                flowName = IssueTestamentFlow::class.java.name,
-                parametersInJson = input,
-            )
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            issueTestament(issuerId, inheritors)
 
             // when
-            startFlow(
-                flowName = IssueTestamentFlow::class.java.name,
-                parametersInJson = input,
-            ) {
+            issueTestament(issuerId, inheritors) {
                 // then
                 failure(it, "already exists")
             }
         }
+
+        @Test
+        fun `Only provider should issue testaments`() = withNode(BANK) {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+
+            // when
+            issueTestament(issuerId, inheritors) {
+                // then
+                failure(it, PROVIDER)
+            }
+        }
+
+        @Test
+        fun `Should be able to issue again after revocation`() {
+        }
     }
 
-    // TODO: execute testament
+    @Nested
+    inner class UpdateTestament {
+        @Test
+        fun `Should update testament`() {
+        }
 
-    // TODO: update testament
+        @Test
+        fun `Should assert inheritors not empty`() {
+        }
 
-    // TODO: revoke testament
+        @Test
+        fun `Should assert shares total is 100 percent`() {
+        }
+
+        @Test
+        fun `Should not update executed testament`() {
+        }
+    }
+
+    @Nested
+    inner class RevokeTestament {
+        @Test
+        fun `Should revoke testament`() {
+        }
+
+        @Test
+        fun `Should not revoke executed testament`() {
+        }
+    }
+
+    @Nested
+    inner class StoreGold {
+        @Test
+        fun `Should store gold`() = withNode(BANK) {
+            // given
+            val holderId = UUID.randomUUID().toString()
+            val amount = 3000
+
+            // when
+            storeGold(holderId, amount)
+
+            // then
+            val stored = retrieveAccount(holderId)
+            stored["holder"] shouldBe holderId
+            stored["amount"] shouldBe amount.toString()
+        }
+
+        @Test
+        fun `Should add gold to existing account`() = withNode(BANK) {
+            // given
+            val holderId = UUID.randomUUID().toString()
+            val initial = 3000
+            storeGold(holderId, initial)
+            val additional = 2000
+
+            // when
+            storeGold(holderId, additional)
+
+            // then
+            val stored = retrieveAccount(holderId, 0)
+            stored["holder"] shouldBe holderId
+            stored["amount"] shouldBe (initial + additional).toString()
+        }
+
+        @Test
+        fun `Should not store gold outside of bank`() = withNode(PROVIDER) {
+            // given+when
+            storeGold(UUID.randomUUID().toString(), 3000) {
+                // then
+                failure(it, BANK)
+            }
+        }
+    }
+
+    @Nested
+    inner class WithdrawGold {
+        @Test
+        fun `Should withdraw gold`() {
+        }
+
+        @Test
+        fun `Should not withdraw below 0`() {
+        }
+    }
+
+    @Nested
+    inner class ExecuteTestament {
+        @Test
+        fun `Should execute testament`() {
+        }
+
+        @Test
+        fun `Should not execute if already executed`() {
+        }
+
+        @Test
+        fun `Should not execute revoked testament`() {
+        }
+    }
 
     private fun withNode(name: String, action: UnirestInstance.() -> Unit) {
         TestNetwork.forNetwork(NETWORK).use {
@@ -129,6 +223,36 @@ class TestamentTest {
                 action()
             }
         }
+    }
+
+    private fun issueTestament(
+        issuerId: String,
+        inheritors: Map<String, Int>,
+        outcome: (FlowId) -> Unit = ::success,
+    ) {
+        startFlow(
+            flowName = IssueTestamentFlow::class.java.name,
+            parametersInJson = mapOf(
+                "issuer" to issuerId,
+                "inheritors" to inheritors,
+            ).toJson(),
+            outcome = outcome,
+        )
+    }
+
+    private fun storeGold(
+        holderId: String,
+        amount: Int,
+        outcome: (FlowId) -> Unit = ::success,
+    ) {
+        startFlow(
+            flowName = StoreGoldFlow::class.java.name,
+            parametersInJson = mapOf(
+                "holder" to holderId,
+                "amount" to amount.toString(),
+            ).toJson(),
+            outcome = outcome,
+        )
     }
 
     private fun Any.toJson(): String = Gson().toJson(this)
@@ -183,18 +307,41 @@ class TestamentTest {
         return request.asJson()
     }
 
-    private fun retrieveTestament(issuerId: String): JSONObject {
+    private fun retrieveTestament(issuerId: String): JSONObject =
+        retrieveState(
+            "TestamentSchemaV1.PersistentTestament.findByIssuerId",
+            mapOf(
+                "issuerId" to issuerId
+            ),
+            TestamentPostProcessor::class,
+        )
+
+    private fun retrieveAccount(holderId: String, position: Int = -1): JSONObject =
+        retrieveState(
+            "AccountSchemaV1.PersistentAccount.findByHolderId",
+            mapOf(
+                "holderId" to holderId
+            ),
+            AccountPostProcessor::class,
+            position,
+        )
+
+    private fun retrieveState(
+        query: String,
+        params: Map<String, Any>,
+        processor: KClass<out ToDtoPostProcessor<*, *>>,
+        position: Int = -1,
+    ): JSONObject {
         val body = mapOf(
             "request" to mapOf(
-                "namedParameters" to mapOf(
-                    "issuerId" to mapOf("parametersInJson" to issuerId.toJson())
-                ),
-                "queryName" to "TestamentSchemaV1.PersistentTestament.findByIssuerId",
-                "postProcessorName" to "com.example.testament.states.TestamentPostProcessor",
+                "namedParameters" to
+                        params.mapValues { mapOf("parametersInJson" to it.value.toJson()) },
+                "queryName" to query,
+                "postProcessorName" to processor.qualifiedName
             ),
             "context" to mapOf(
                 "awaitForResultTimeout" to "PT15M",
-                "currentPosition" to -1,
+                "currentPosition" to position,
                 "maxCount" to 10
             ),
         )

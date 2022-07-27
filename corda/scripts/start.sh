@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 infoln() {
   printf "\033[0;34m%s\033[0m\n" "$1"
 }
@@ -15,7 +17,7 @@ corda-cli network deploy -n testament-network -f testament-network.yaml | docker
 corda-cli network wait -n testament-network
 
 infoln "--- Deploying package ---"
-# Note: we're skipping tests, because they require local network
+# we're skipping tests, because they require local network
 ./gradlew clean build -x test
 
 mkdir -p build/libs
@@ -27,8 +29,8 @@ cordapp-builder create \
 corda-cli package install -n testament-network build/libs/testament.cpb
 corda-cli network wait -n testament-network
 
-infoln "--- Running tests ---"
-./gradlew test
-
 infoln "+++ Cordapp setup verified. Nodes status: +++"
 corda-cli network status -n testament-network
+
+infoln "--- Running tests ---"
+./gradlew test

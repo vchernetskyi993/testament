@@ -9,6 +9,7 @@ nodes:
         password: Password1!
         permissions: [ "ALL" ]
   Bank:
+    debug: true
     x500: "C=US, L=Indianapolis, O=Bank, OU=INC"
     users:
       user1:
@@ -17,6 +18,7 @@ nodes:
         password: Password1!
         permissions: [ "ALL" ]
   Government:
+    debug: true
     x500: "C=US, L=New York, O=Government"
     users:
       user1:
