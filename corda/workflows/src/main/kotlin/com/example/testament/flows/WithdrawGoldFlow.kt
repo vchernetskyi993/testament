@@ -30,14 +30,9 @@ import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
 
-data class GoldInput(
-    val holder: String,
-    val amount: String,
-)
-
 @InitiatingFlow
 @StartableByRPC
-class StoreGoldFlow @JsonConstructor constructor(
+class WithdrawGoldFlow @JsonConstructor constructor(
     private val params: RpcStartFlowRequestParameters,
 ) : Flow<SignedTransactionDigest> {
 
@@ -71,7 +66,7 @@ class StoreGoldFlow @JsonConstructor constructor(
 
         val bank = flowIdentity.ourIdentity
         requireThat {
-            "Only $BANK_ORG can store gold" using (bank.name.organisation == BANK_ORG)
+            "Only $BANK_ORG can withdraw gold" using (bank.name.organisation == BANK_ORG)
         }
         val government = identityService.government()
         val existingAccount = persistenceService.latestState<AccountState>(
@@ -82,12 +77,12 @@ class StoreGoldFlow @JsonConstructor constructor(
 
         val accountState = AccountState(
             input.holder,
-            input.amount.toBigInteger() + existingAmount,
+            existingAmount - input.amount.toBigInteger(),
             bank,
             government,
         )
         val txCommand = Command(
-            AccountContract.Commands.Store(),
+            AccountContract.Commands.Withdraw(),
             listOf(bank.owningKey, government.owningKey)
         )
 
@@ -107,6 +102,6 @@ class StoreGoldFlow @JsonConstructor constructor(
     }
 }
 
-@InitiatedBy(StoreGoldFlow::class)
-class StoreGoldFlowAcceptor(otherPartySession: FlowSession) :
+@InitiatedBy(WithdrawGoldFlow::class)
+class WithdrawGoldFlowAcceptor(otherPartySession: FlowSession) :
     JustSignFlowAcceptor(otherPartySession)

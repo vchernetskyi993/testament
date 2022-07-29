@@ -6,7 +6,7 @@ import com.example.testament.processor.ToDtoPostProcessor
 import com.google.gson.Gson
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldContainIgnoringCase
 import kong.unirest.HttpResponse
 import kong.unirest.HttpStatus
 import kong.unirest.JsonNode
@@ -66,7 +66,7 @@ class TestamentTest {
             // given+when
             issueTestament(UUID.randomUUID().toString(), mapOf()) {
                 // then
-                failure(it, "empty")
+                failure("empty")
             }
         }
 
@@ -78,7 +78,7 @@ class TestamentTest {
                 mapOf("1" to 6000, "2" to 4500),
             ) {
                 // then
-                failure(it, "10000")
+                failure("10000")
             }
         }
 
@@ -92,7 +92,7 @@ class TestamentTest {
             // when
             issueTestament(issuerId, inheritors) {
                 // then
-                failure(it, "already exists")
+                failure("already exists")
             }
         }
 
@@ -105,17 +105,19 @@ class TestamentTest {
             // when
             issueTestament(issuerId, inheritors) {
                 // then
-                failure(it, PROVIDER)
+                failure(PROVIDER)
             }
         }
 
         @Test
         fun `Should be able to issue again after revocation`() {
+            // TODO: test
         }
     }
 
     @Nested
     inner class UpdateTestament {
+        // TODO: test
         @Test
         fun `Should update testament`() {
         }
@@ -135,6 +137,7 @@ class TestamentTest {
 
     @Nested
     inner class RevokeTestament {
+        // TODO: test
         @Test
         fun `Should revoke testament`() {
         }
@@ -183,7 +186,7 @@ class TestamentTest {
             // given+when
             storeGold(UUID.randomUUID().toString(), 3000) {
                 // then
-                failure(it, BANK)
+                failure(BANK)
             }
         }
     }
@@ -191,11 +194,84 @@ class TestamentTest {
     @Nested
     inner class WithdrawGold {
         @Test
-        fun `Should withdraw gold`() {
+        fun `Should withdraw gold`() = withNode(BANK) {
+            // given
+            val holderId = UUID.randomUUID().toString()
+            val possession = 3000
+            storeGold(holderId, possession)
+            val withdraw = 2000
+
+            // when
+            withdrawGold(holderId, withdraw)
+
+            // then
+            val stored = retrieveAccount(holderId, 0)
+            stored["holder"] shouldBe holderId
+            stored["amount"] shouldBe (possession - withdraw).toString()
         }
 
         @Test
-        fun `Should not withdraw below 0`() {
+        fun `Should withdraw all gold`() = withNode(BANK) {
+            // given
+            val holderId = UUID.randomUUID().toString()
+            val possession = 3000
+            storeGold(holderId, possession)
+
+            // when
+            withdrawGold(holderId, possession)
+
+            // then
+            val stored = retrieveAccount(holderId, 0)
+            stored["holder"] shouldBe holderId
+            stored["amount"] shouldBe "0"
+        }
+
+        @Test
+        fun `Should not withdraw below 0`() = withNode(BANK) {
+            // given
+            val holderId = UUID.randomUUID().toString()
+            val possession = 1000
+            storeGold(holderId, possession)
+            val withdraw = 2000
+
+            // when
+            withdrawGold(holderId, withdraw) {
+                // then
+                failure("not enough")
+            }
+        }
+
+        @Test
+        fun `Should not withdraw gold outside of bank`() {
+            // given
+            withNode(BANK) {
+                val holderId = UUID.randomUUID().toString()
+                val possession = 1000
+                storeGold(holderId, possession)
+            }
+
+            withNode(PROVIDER) {
+                // when
+                withdrawGold(UUID.randomUUID().toString(), 1000) {
+                    // then
+                    failure(BANK)
+                }
+            }
+        }
+
+        private fun withdrawGold(
+            holderId: String,
+            amount: Int,
+            outcome: FlowId.() -> Unit = { success() },
+        ) {
+            startFlow(
+                flowName = WithdrawGoldFlow::class.java.name,
+                parametersInJson = mapOf(
+                    "holder" to holderId,
+                    "amount" to amount.toString(),
+                ).toJson(),
+                outcome = outcome,
+            )
         }
     }
 
@@ -228,7 +304,7 @@ class TestamentTest {
     private fun issueTestament(
         issuerId: String,
         inheritors: Map<String, Int>,
-        outcome: (FlowId) -> Unit = ::success,
+        outcome: FlowId.() -> Unit = { success() },
     ) {
         startFlow(
             flowName = IssueTestamentFlow::class.java.name,
@@ -243,7 +319,7 @@ class TestamentTest {
     private fun storeGold(
         holderId: String,
         amount: Int,
-        outcome: (FlowId) -> Unit = ::success,
+        outcome: FlowId.() -> Unit = { success() },
     ) {
         startFlow(
             flowName = StoreGoldFlow::class.java.name,
@@ -261,7 +337,7 @@ class TestamentTest {
         flowName: String,
         parametersInJson: String,
         clientId: String = UUID.randomUUID().toString(),
-        outcome: (FlowId) -> Unit = ::success,
+        outcome: FlowId.() -> Unit = { success() },
     ) {
         val body = mapOf(
             "rpcStartFlowRequest" to mapOf(
@@ -281,28 +357,28 @@ class TestamentTest {
         outcome(flowId.getString("uuid"))
     }
 
-    private fun success(flowId: FlowId) {
+    private fun FlowId.success() {
         eventually {
-            with(retrieveOutcome(flowId)) {
+            with(retrieveOutcome()) {
                 status shouldBe HttpStatus.OK
                 body.`object`["status"] shouldBe "COMPLETED"
             }
         }
     }
 
-    private fun failure(flowId: FlowId, message: String) {
+    private fun FlowId.failure(message: String) {
         eventually {
-            with(retrieveOutcome(flowId)) {
+            with(retrieveOutcome()) {
                 status shouldBe HttpStatus.OK
                 body.`object`["status"] shouldBe "FAILED"
                 body.`object`.getJSONObject("exceptionDigest")
-                    .getString("message") shouldContain message
+                    .getString("message") shouldContainIgnoringCase message
             }
         }
     }
 
-    private fun retrieveOutcome(flowId: String): HttpResponse<JsonNode> {
-        val request = Unirest.get("flowstarter/flowoutcome/$flowId")
+    private fun FlowId.retrieveOutcome(): HttpResponse<JsonNode> {
+        val request = Unirest.get("flowstarter/flowoutcome/$this")
             .header("Content-Type", "application/json")
         return request.asJson()
     }
