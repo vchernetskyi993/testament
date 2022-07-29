@@ -32,14 +32,18 @@ Stop the network: `./scripts/stop.sh`.
 
 ## Interact with the app
 
-Get node ports: `corda-cli network status -n testament-network`.
-
 Setup variables:
+
+* for credentials check out [network config](./testament-network.yaml)
+* ports are printed on network start up (or issue `corda-cli network status -n testament-network`)
 
 ```bash
 PROVIDER_PORT=12112
 PROVIDER_USER=testamentadmin
 PROVIDER_PASSWORD=Password1!
+BANK_PORT=12116
+BANK_USER=bankadmin
+BANK_PASSWORD=Password1!
 ```
 
 Issue testament:
@@ -68,6 +72,11 @@ FLOW_ID=3995299e-83e5-40f7-9456-7f3e47942518 # flowId.uuid from startflow respon
 curl --request GET "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/flowoutcome/$FLOW_ID" \
   --insecure \
   -u $PROVIDER_USER:$PROVIDER_PASSWORD | jq
+  
+# OR for Bank:
+curl --request GET "https://localhost:$BANK_PORT/api/v1/flowstarter/flowoutcome/$FLOW_ID" \
+  --insecure \
+  -u $BANK_USER:$BANK_PASSWORD | jq
 ```
 
 Fetch testament by issuer
@@ -95,15 +104,52 @@ curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/persistence/query" 
 }' | jq '.positionedValues[0].value.json | fromjson'
 ```
 
-[//]: # (TODO: add store gold example)
+Store gold to Bank:
 
-For API docs consult Swagger: `https://localhost:<port>/api/v1/swagger`.
+```bash
+curl --request POST "https://localhost:$BANK_PORT/api/v1/flowstarter/startflow" \
+  --insecure \
+  -u $BANK_USER:$BANK_PASSWORD \
+  --header 'Content-Type: application/json' \
+  --data-raw '{
+    "rpcStartFlowRequest": {
+        "clientId": "4a6019a8-a273-44c3-a7d5-909db1b11d2d",
+        "flowName": "com.example.testament.flows.StoreGoldFlow",
+        "parameters": {
+            "parametersInJson": "{\"holder\": \"3\", \"amount\": \"3000\"}"
+        }
+    }
+}' | jq
+```
 
-## Development
+Retrieve bank account state:
 
-[//]: # (TODO: include smart contract structure)
+```bash
+curl --request POST "https://localhost:$BANK_PORT/api/v1/persistence/query" \
+  --insecure \
+  -u $BANK_USER:$BANK_PASSWORD \
+  --header 'Content-Type: application/json' \
+  --data-raw '{
+    "request": {
+        "namedParameters": {
+            "holderId": {
+                "parametersInJson": "3"
+            }
+        },
+        "queryName": "AccountSchemaV1.PersistentAccount.findByHolderId",
+        "postProcessorName": "com.example.testament.processor.AccountPostProcessor"
+    },
+    "context": {
+        "awaitForResultTimeout": "PT15M",
+        "currentPosition": -1,
+        "maxCount": 10
+    }
+}' | jq '.positionedValues[0].value.json | fromjson'
+```
 
-### Testing
+For API docs consult Swagger: `https://localhost:$PROVIDER_PORT/api/v1/swagger`.
+
+## Testing
 
 We use only integration tests. They require local network running and artifact deployed.
 Check out `scripts/start.sh` for details.
