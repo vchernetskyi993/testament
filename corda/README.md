@@ -38,14 +38,19 @@ Setup variables:
 * ports are printed on network start up (or issue `corda-cli network status -n testament-network`)
 
 ```bash
+# testament provider node
 PROVIDER_PORT=12112
 PROVIDER_USER=testamentadmin
 PROVIDER_PASSWORD=Password1!
+# bank node
 BANK_PORT=12116
 BANK_USER=bankadmin
 BANK_PASSWORD=Password1!
+# testament issuer & account holder
 USER_ID=3
 ```
+
+For API docs consult Swagger: `https://localhost:$PROVIDER_PORT/api/v1/swagger`.
 
 Issue testament:
 
@@ -86,7 +91,7 @@ curl --request GET "https://localhost:$BANK_PORT/api/v1/flowstarter/flowoutcome/
   -u $BANK_USER:$BANK_PASSWORD | jq
 ```
 
-Fetch testament by issuer
+Fetch testament by issuer:
 
 ```bash
 jq -nc --arg userId $USER_ID '{
@@ -109,6 +114,31 @@ jq -nc --arg userId $USER_ID '{
   -u $PROVIDER_USER:$PROVIDER_PASSWORD \
   --header 'Content-Type: application/json' \
   --data-binary @- | jq '.positionedValues[-1].value.json | fromjson'
+```
+
+Update testament:
+
+```bash
+jq -nc --arg clientId $(uuidgen) --arg userId $USER_ID '{
+  "issuer": $userId,
+  "inheritors": {
+    "1": 6000,
+    "2": 2000,
+    "3": 2000
+  }
+} | tostring as $params | {
+  "rpcStartFlowRequest": {
+    "clientId": $clientId,
+    "flowName": "com.example.testament.flows.UpdateTestamentFlow",
+    "parameters": {
+      "parametersInJson": $params
+    }
+  }
+}' | curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/startflow" \
+  -u $PROVIDER_USER:$PROVIDER_PASSWORD \
+  --insecure \
+  --header 'Content-Type: application/json' \
+  --data-binary @- | jq
 ```
 
 Store gold to Bank:
@@ -177,8 +207,6 @@ jq -nc --arg clientId $(uuidgen) --arg userId $USER_ID '{
   --header 'Content-Type: application/json' \
   --data-binary @- | jq
 ```
-
-For API docs consult Swagger: `https://localhost:$PROVIDER_PORT/api/v1/swagger`.
 
 ## Testing
 

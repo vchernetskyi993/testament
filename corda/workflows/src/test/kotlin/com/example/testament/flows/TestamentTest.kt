@@ -111,27 +111,76 @@ class TestamentTest {
 
         @Test
         fun `Should be able to issue again after revocation`() {
-            // TODO: test
+            // TODO: test when revocation is ready
         }
     }
 
     @Nested
     inner class UpdateTestament {
-        // TODO: test
         @Test
-        fun `Should update testament`() {
+        fun `Should update testament`() = withNode(PROVIDER) {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            issueTestament(issuerId, inheritors)
+            val updatedInheritors = mapOf("1" to 5000, "2" to 2000, "3" to 3000)
+
+            // when
+            updateTestament(issuerId, updatedInheritors)
+
+            // then
+            val stored = retrieveTestament(issuerId, 0)
+            stored["issuer"] shouldBe issuerId
+            stored.getJSONObject("inheritors").toMap() shouldBe updatedInheritors
         }
 
         @Test
-        fun `Should assert inheritors not empty`() {
+        fun `Should assert inheritors not empty`() = withNode(PROVIDER) {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            issueTestament(issuerId, inheritors)
+
+            // when
+            updateTestament(issuerId, mapOf()) {
+                // then
+                failure("empty")
+            }
         }
 
         @Test
-        fun `Should assert shares total is 100 percent`() {
+        fun `Should assert shares total is 100 percent`() = withNode(PROVIDER) {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            issueTestament(issuerId, inheritors)
+            val updatedInheritors = mapOf("1" to 5000, "2" to 2000, "3" to 5000)
+
+            // when
+            updateTestament(issuerId, updatedInheritors) {
+                // then
+                failure("10000")
+            }
         }
 
         @Test
         fun `Should not update executed testament`() {
+            // TODO: test when execute added
+        }
+
+        private fun updateTestament(
+            issuerId: String,
+            inheritors: Map<String, Int>,
+            outcome: FlowId.() -> Unit = { success() },
+        ) {
+            startFlow(
+                flowName = UpdateTestamentFlow::class.java.name,
+                parametersInJson = mapOf(
+                    "issuer" to issuerId,
+                    "inheritors" to inheritors,
+                ).toJson(),
+                outcome = outcome,
+            )
         }
     }
 
@@ -277,6 +326,7 @@ class TestamentTest {
 
     @Nested
     inner class ExecuteTestament {
+        // TODO: test
         @Test
         fun `Should execute testament`() {
         }
@@ -383,13 +433,14 @@ class TestamentTest {
         return request.asJson()
     }
 
-    private fun retrieveTestament(issuerId: String): JSONObject =
+    private fun retrieveTestament(issuerId: String, position: Int = -1): JSONObject =
         retrieveState(
             "TestamentSchemaV1.PersistentTestament.findByIssuerId",
             mapOf(
                 "issuerId" to issuerId
             ),
             TestamentPostProcessor::class,
+            position,
         )
 
     private fun retrieveAccount(holderId: String, position: Int = -1): JSONObject =

@@ -1,7 +1,6 @@
 package com.example.testament.flows
 
 import com.example.testament.JustSignFlowAcceptor
-import com.example.testament.PROVIDER_ORG
 import com.example.testament.TransactionHelper
 import com.example.testament.contracts.TestamentContract
 import com.example.testament.government
@@ -25,19 +24,13 @@ import net.corda.v5.application.services.json.parseJson
 import net.corda.v5.application.services.persistence.PersistenceService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.ledger.contracts.Command
-import net.corda.v5.ledger.contracts.requireThat
 import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
 
-data class TestamentInput(
-    val issuer: String,
-    val inheritors: Map<String, Int>,
-)
-
 @InitiatingFlow
 @StartableByRPC
-class IssueTestamentFlow @JsonConstructor constructor(
+class UpdateTestamentFlow @JsonConstructor constructor(
     private val params: RpcStartFlowRequestParameters,
 ) : Flow<SignedTransactionDigest> {
 
@@ -70,23 +63,20 @@ class IssueTestamentFlow @JsonConstructor constructor(
         val input = jsonMarshallingService.parseJson<TestamentInput>(params.parametersInJson)
 
         val provider = flowIdentity.ourIdentity
-        requireThat {
-            "Testament for the issuer ${input.issuer} already exists." using
-                    (persistenceService.latestState<TestamentState>(
-                        TestamentSchemaV1.PersistentTestament.BY_ISSUER,
-                        mapOf("issuerId" to input.issuer),
-                    ) == null)
-        }
+        val existing = persistenceService.latestState<TestamentState>(
+            TestamentSchemaV1.PersistentTestament.BY_ISSUER,
+            mapOf("issuerId" to input.issuer),
+        )
         val government = identityService.government()
 
-        val testamentState = TestamentState(
+        val updated = TestamentState(
             input.issuer,
             input.inheritors,
             provider,
             government,
         )
         val txCommand = Command(
-            TestamentContract.Commands.Issue(),
+            TestamentContract.Commands.Update(),
             listOf(provider.owningKey, government.owningKey)
         )
 
@@ -99,12 +89,13 @@ class IssueTestamentFlow @JsonConstructor constructor(
         ).sign(
             command = txCommand,
             approver = government,
-            output = testamentState,
+            input = existing,
+            output = updated,
             contract = TestamentContract::class
         )
     }
 }
 
-@InitiatedBy(IssueTestamentFlow::class)
-class IssueTestamentFlowAcceptor(otherPartySession: FlowSession) :
+@InitiatedBy(UpdateTestamentFlow::class)
+class UpdateTestamentFlowAcceptor(otherPartySession: FlowSession) :
     JustSignFlowAcceptor(otherPartySession)
