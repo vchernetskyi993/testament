@@ -44,24 +44,31 @@ PROVIDER_PASSWORD=Password1!
 BANK_PORT=12116
 BANK_USER=bankadmin
 BANK_PASSWORD=Password1!
+USER_ID=3
 ```
 
 Issue testament:
 
 ```bash
-curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/startflow" \
+jq -nc --arg clientId $(uuidgen) --arg userId $USER_ID '{
+  "issuer": $userId,
+  "inheritors": {
+    "1": 6000,
+    "2": 4000
+  }
+} | tostring as $params | {
+  "rpcStartFlowRequest": {
+    "clientId": $clientId,
+    "flowName": "com.example.testament.flows.IssueTestamentFlow",
+    "parameters": {
+      "parametersInJson": $params
+    }
+  }
+}' | curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/startflow" \
   -u $PROVIDER_USER:$PROVIDER_PASSWORD \
   --insecure \
   --header 'Content-Type: application/json' \
-  --data-raw '{
-    "rpcStartFlowRequest": {
-        "clientId": "ffeb26aa-f060-4f83-9d59-07074302819f",
-        "flowName": "com.example.testament.flows.IssueTestamentFlow",
-        "parameters": {
-            "parametersInJson": "{\"issuer\":\"0\",\"inheritors\": {\"1\":6000,\"2\":4000}}"
-        }
-    }
-}' | jq
+  --data-binary @- | jq
 ```
 
 Check flow result:
@@ -82,69 +89,93 @@ curl --request GET "https://localhost:$BANK_PORT/api/v1/flowstarter/flowoutcome/
 Fetch testament by issuer
 
 ```bash
-curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/persistence/query" \
+jq -nc --arg userId $USER_ID '{
+  "request": {
+    "namedParameters": {
+      "issuerId": {
+        "parametersInJson": $userId
+      }
+    },
+    "queryName": "TestamentSchemaV1.PersistentTestament.findByIssuerId",
+    "postProcessorName": "com.example.testament.processor.TestamentPostProcessor"
+  },
+  "context": {
+    "awaitForResultTimeout": "PT15M",
+    "currentPosition": -1,
+    "maxCount": 100
+  }
+}' | curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/persistence/query" \
   --insecure \
   -u $PROVIDER_USER:$PROVIDER_PASSWORD \
   --header 'Content-Type: application/json' \
-  --data-raw '{
-    "request": {
-        "namedParameters": {
-            "issuerId": {
-                "parametersInJson": "0"
-            }
-        },
-        "queryName": "TestamentSchemaV1.PersistentTestament.findByIssuerId",
-        "postProcessorName": "com.example.testament.states.TestamentPostProcessor"
-    },
-    "context": {
-        "awaitForResultTimeout": "PT15M",
-        "currentPosition": -1,
-        "maxCount": 10
-    }
-}' | jq '.positionedValues[0].value.json | fromjson'
+  --data-binary @- | jq '.positionedValues[-1].value.json | fromjson'
 ```
 
 Store gold to Bank:
 
 ```bash
-curl --request POST "https://localhost:$BANK_PORT/api/v1/flowstarter/startflow" \
+jq -nc --arg clientId $(uuidgen) --arg userId $USER_ID '{
+  "holder": $userId,
+  "amount": "3000"
+} | tostring as $params | {
+  "rpcStartFlowRequest": {
+    "clientId": $clientId,
+    "flowName": "com.example.testament.flows.StoreGoldFlow",
+    "parameters": {
+      "parametersInJson": $params
+    }
+  }
+}' | curl --request POST "https://localhost:$BANK_PORT/api/v1/flowstarter/startflow" \
   --insecure \
   -u $BANK_USER:$BANK_PASSWORD \
   --header 'Content-Type: application/json' \
-  --data-raw '{
-    "rpcStartFlowRequest": {
-        "clientId": "4a6019a8-a273-44c3-a7d5-909db1b11d2d",
-        "flowName": "com.example.testament.flows.StoreGoldFlow",
-        "parameters": {
-            "parametersInJson": "{\"holder\": \"3\", \"amount\": \"3000\"}"
-        }
-    }
-}' | jq
+  --data-binary @- | jq
 ```
 
 Retrieve bank account state:
 
 ```bash
-curl --request POST "https://localhost:$BANK_PORT/api/v1/persistence/query" \
+jq -nc --arg userId $USER_ID '{
+  "request": {
+    "namedParameters": {
+      "holderId": {
+        "parametersInJson": $userId
+      }
+    },
+    "queryName": "AccountSchemaV1.PersistentAccount.findByHolderId",
+    "postProcessorName": "com.example.testament.processor.AccountPostProcessor"
+  },
+  "context": {
+    "awaitForResultTimeout": "PT15M",
+    "currentPosition": -1,
+    "maxCount": 100
+  }
+}' | curl --request POST "https://localhost:$BANK_PORT/api/v1/persistence/query" \
   --insecure \
   -u $BANK_USER:$BANK_PASSWORD \
   --header 'Content-Type: application/json' \
-  --data-raw '{
-    "request": {
-        "namedParameters": {
-            "holderId": {
-                "parametersInJson": "3"
-            }
-        },
-        "queryName": "AccountSchemaV1.PersistentAccount.findByHolderId",
-        "postProcessorName": "com.example.testament.processor.AccountPostProcessor"
-    },
-    "context": {
-        "awaitForResultTimeout": "PT15M",
-        "currentPosition": -1,
-        "maxCount": 10
+  --data-binary @- | jq '.positionedValues[-1].value.json | fromjson'
+```
+
+Withdraw gold from Bank:
+
+```bash
+jq -nc --arg clientId $(uuidgen) --arg userId $USER_ID '{
+  "holder": $userId,
+  "amount": "2000"
+} | tostring as $params | {
+  "rpcStartFlowRequest": {
+    "clientId": $clientId,
+    "flowName": "com.example.testament.flows.WithdrawGoldFlow",
+    "parameters": {
+      "parametersInJson": $params
     }
-}' | jq '.positionedValues[0].value.json | fromjson'
+  }
+}' | curl --request POST "https://localhost:$BANK_PORT/api/v1/flowstarter/startflow" \
+  --insecure \
+  -u $BANK_USER:$BANK_PASSWORD \
+  --header 'Content-Type: application/json' \
+  --data-binary @- | jq
 ```
 
 For API docs consult Swagger: `https://localhost:$PROVIDER_PORT/api/v1/swagger`.
