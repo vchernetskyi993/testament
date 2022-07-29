@@ -85,13 +85,13 @@ class UpdateTestamentFlow @JsonConstructor constructor(
             transactionBuilderFactory,
             flowMessaging,
             flowEngine,
-            jsonMarshallingService
+            jsonMarshallingService,
         ).sign(
             command = txCommand,
             approver = government,
             input = existing,
             output = updated,
-            contract = TestamentContract::class
+            contract = TestamentContract::class,
         )
     }
 }

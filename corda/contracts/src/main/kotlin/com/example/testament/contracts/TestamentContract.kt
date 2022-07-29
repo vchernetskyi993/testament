@@ -32,5 +32,6 @@ class TestamentContract : Contract {
     interface Commands : CommandData {
         class Issue : Commands
         class Update : Commands
+        class Revoke : Commands
     }
 }

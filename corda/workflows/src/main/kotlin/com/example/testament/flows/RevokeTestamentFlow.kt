@@ -1,13 +1,12 @@
 package com.example.testament.flows
 
-import com.example.testament.BANK_ORG
 import com.example.testament.JustSignFlowAcceptor
 import com.example.testament.TransactionHelper
-import com.example.testament.contracts.AccountContract
+import com.example.testament.contracts.TestamentContract
 import com.example.testament.government
 import com.example.testament.latestState
-import com.example.testament.schema.AccountSchemaV1
-import com.example.testament.states.AccountState
+import com.example.testament.schema.TestamentSchemaV1
+import com.example.testament.states.TestamentState
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.InitiatedBy
@@ -25,19 +24,17 @@ import net.corda.v5.application.services.json.parseJson
 import net.corda.v5.application.services.persistence.PersistenceService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.ledger.contracts.Command
-import net.corda.v5.ledger.contracts.requireThat
 import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
 
-data class GoldInput(
-    val holder: String,
-    val amount: String,
+data class RevokeTestamentInput(
+    val issuer: String,
 )
 
 @InitiatingFlow
 @StartableByRPC
-class StoreGoldFlow @JsonConstructor constructor(
+class RevokeTestamentFlow @JsonConstructor constructor(
     private val params: RpcStartFlowRequestParameters,
 ) : Flow<SignedTransactionDigest> {
 
@@ -67,28 +64,19 @@ class StoreGoldFlow @JsonConstructor constructor(
 
     @Suspendable
     override fun call(): SignedTransactionDigest {
-        val input = jsonMarshallingService.parseJson<GoldInput>(params.parametersInJson)
+        val input = jsonMarshallingService.parseJson<RevokeTestamentInput>(params.parametersInJson)
 
-        val bank = flowIdentity.ourIdentity
-        requireThat {
-            "Only $BANK_ORG can store gold" using (bank.name.organisation == BANK_ORG)
-        }
+        val provider = flowIdentity.ourIdentity
         val government = identityService.government()
-        val existingAccount = persistenceService.latestState<AccountState>(
-            AccountSchemaV1.PersistentAccount.BY_HOLDER,
-            mapOf("holderId" to input.holder),
-        )
-        val existingAmount = existingAccount?.state?.data?.amount ?: 0.toBigInteger()
 
-        val accountState = AccountState(
-            input.holder,
-            input.amount.toBigInteger() + existingAmount,
-            bank,
-            government,
+        val existing = persistenceService.latestState<TestamentState>(
+            TestamentSchemaV1.PersistentTestament.BY_ISSUER,
+            mapOf("issuerId" to input.issuer),
         )
+
         val txCommand = Command(
-            AccountContract.Commands.Store(),
-            listOf(bank.owningKey, government.owningKey)
+            TestamentContract.Commands.Revoke(),
+            listOf(provider.owningKey, government.owningKey)
         )
 
         return TransactionHelper(
@@ -96,17 +84,16 @@ class StoreGoldFlow @JsonConstructor constructor(
             transactionBuilderFactory,
             flowMessaging,
             flowEngine,
-            jsonMarshallingService,
+            jsonMarshallingService
         ).sign(
             command = txCommand,
             approver = government,
-            input = existingAccount,
-            output = accountState,
-            contract = AccountContract::class,
+            input = existing,
+            contract = TestamentContract::class,
         )
     }
 }
 
-@InitiatedBy(StoreGoldFlow::class)
-class StoreGoldFlowAcceptor(otherPartySession: FlowSession) :
+@InitiatedBy(RevokeTestamentFlow::class)
+class RevokeTestamentFlowAcceptor(otherPartySession: FlowSession) :
     JustSignFlowAcceptor(otherPartySession)

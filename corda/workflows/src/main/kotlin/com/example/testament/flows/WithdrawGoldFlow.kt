@@ -91,13 +91,13 @@ class WithdrawGoldFlow @JsonConstructor constructor(
             transactionBuilderFactory,
             flowMessaging,
             flowEngine,
-            jsonMarshallingService
+            jsonMarshallingService,
         ).sign(
             command = txCommand,
             approver = government,
             input = existingAccount,
             output = accountState,
-            contract = AccountContract::class
+            contract = AccountContract::class,
         )
     }
 }

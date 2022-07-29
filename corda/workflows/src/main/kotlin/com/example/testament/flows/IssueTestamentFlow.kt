@@ -1,7 +1,6 @@
 package com.example.testament.flows
 
 import com.example.testament.JustSignFlowAcceptor
-import com.example.testament.PROVIDER_ORG
 import com.example.testament.TransactionHelper
 import com.example.testament.contracts.TestamentContract
 import com.example.testament.government
@@ -95,12 +94,12 @@ class IssueTestamentFlow @JsonConstructor constructor(
             transactionBuilderFactory,
             flowMessaging,
             flowEngine,
-            jsonMarshallingService
+            jsonMarshallingService,
         ).sign(
             command = txCommand,
             approver = government,
             output = testamentState,
-            contract = TestamentContract::class
+            contract = TestamentContract::class,
         )
     }
 }
