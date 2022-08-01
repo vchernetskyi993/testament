@@ -19,6 +19,7 @@ data class TestamentState(
     val inheritors: Map<String, Int>,
     val provider: Party,
     val approver: Party,
+    val revoked: Boolean = false,
     val executed: Boolean = false,
 ) : LinearState, JsonRepresentable, QueryableState, ToDto<TestamentStateDto> {
     override val participants = listOf(provider, approver)
@@ -42,6 +43,7 @@ data class TestamentState(
         inheritors,
         provider.name.toString(),
         approver.name.toString(),
+        revoked,
         executed
     )
 }
@@ -53,5 +55,6 @@ data class TestamentStateDto(
     val inheritors: Map<String, Int>,
     val provider: String,
     val approver: String,
+    val revoked: Boolean,
     val executed: Boolean,
 )

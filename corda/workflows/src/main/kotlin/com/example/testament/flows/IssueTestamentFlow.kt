@@ -24,7 +24,6 @@ import net.corda.v5.application.services.json.parseJson
 import net.corda.v5.application.services.persistence.PersistenceService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.ledger.contracts.Command
-import net.corda.v5.ledger.contracts.requireThat
 import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
@@ -69,13 +68,10 @@ class IssueTestamentFlow @JsonConstructor constructor(
         val input = jsonMarshallingService.parseJson<TestamentInput>(params.parametersInJson)
 
         val provider = flowIdentity.ourIdentity
-        requireThat {
-            "Testament for the issuer ${input.issuer} already exists." using
-                    (persistenceService.latestState<TestamentState>(
-                        TestamentSchemaV1.PersistentTestament.BY_ISSUER,
-                        mapOf("issuerId" to input.issuer),
-                    ) == null)
-        }
+        val existing = persistenceService.latestState<TestamentState>(
+            TestamentSchemaV1.PersistentTestament.BY_ISSUER,
+            mapOf("issuerId" to input.issuer)
+        )
         val government = identityService.government()
 
         val testamentState = TestamentState(
@@ -83,6 +79,7 @@ class IssueTestamentFlow @JsonConstructor constructor(
             input.inheritors,
             provider,
             government,
+            revoked = false,
         )
         val txCommand = Command(
             TestamentContract.Commands.Issue(),
@@ -98,6 +95,7 @@ class IssueTestamentFlow @JsonConstructor constructor(
         ).sign(
             command = txCommand,
             approver = government,
+            input = existing,
             output = testamentState,
             contract = TestamentContract::class,
         )

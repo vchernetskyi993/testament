@@ -73,6 +73,10 @@ class RevokeTestamentFlow @JsonConstructor constructor(
             TestamentSchemaV1.PersistentTestament.BY_ISSUER,
             mapOf("issuerId" to input.issuer),
         )
+        val revoked = existing?.state?.data?.copy(
+            provider = flowIdentity.ourIdentity,
+            revoked = true
+        )
 
         val txCommand = Command(
             TestamentContract.Commands.Revoke(),
@@ -89,6 +93,7 @@ class RevokeTestamentFlow @JsonConstructor constructor(
             command = txCommand,
             approver = government,
             input = existing,
+            output = revoked,
             contract = TestamentContract::class,
         )
     }

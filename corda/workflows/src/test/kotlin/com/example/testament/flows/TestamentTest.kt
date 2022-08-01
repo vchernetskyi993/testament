@@ -110,8 +110,21 @@ class TestamentTest {
         }
 
         @Test
-        fun `Should be able to issue again after revocation`() {
-            // TODO: test when revocation is ready
+        fun `Should be able to issue again after revocation`() = withNode(PROVIDER) {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            issueTestament(issuerId, inheritors)
+            revokeTestament(issuerId)
+
+            // when
+            issueTestament(issuerId, inheritors)
+
+            // then
+            val stored = retrieveTestament(issuerId)
+            stored["issuer"] shouldBe issuerId
+            stored.getJSONObject("inheritors").toMap() shouldBe inheritors
+            stored["revoked"] shouldBe false
         }
     }
 
@@ -164,8 +177,43 @@ class TestamentTest {
         }
 
         @Test
+        fun `Only provider should update testaments`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            withNode(PROVIDER) {
+                // given
+                val inheritors = mapOf("1" to 6000, "2" to 4000)
+                issueTestament(issuerId, inheritors)
+            }
+            val updatedInheritors = mapOf("1" to 5000, "2" to 2000, "3" to 5000)
+
+            withNode(BANK) {
+                updateTestament(issuerId, updatedInheritors) {
+                    // then
+                    failure(PROVIDER)
+                }
+            }
+        }
+
+        @Test
+        fun `Should not update revoked testament`() = withNode(PROVIDER) {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            issueTestament(issuerId, inheritors)
+            val updatedInheritors = mapOf("1" to 5000, "2" to 2000, "3" to 3000)
+            revokeTestament(issuerId)
+
+            // when
+            updateTestament(issuerId, updatedInheritors) {
+                // then
+                failure("revoked")
+            }
+        }
+
+        @Test
         fun `Should not update executed testament`() {
-            // TODO: test when execute added
+            // TODO: execute: test
         }
 
         private fun updateTestament(
@@ -186,13 +234,60 @@ class TestamentTest {
 
     @Nested
     inner class RevokeTestament {
-        // TODO: test
         @Test
-        fun `Should revoke testament`() {
+        fun `Should revoke testament`() = withNode(PROVIDER) {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            issueTestament(issuerId, inheritors)
+
+            // when
+            revokeTestament(issuerId)
+
+            // then
+            val stored = retrieveTestament(issuerId, 0)
+            stored["issuer"] shouldBe issuerId
+            stored.getJSONObject("inheritors").toMap() shouldBe inheritors
+            stored["revoked"] shouldBe true
+        }
+
+        @Test
+        fun `Only provider should revoke testaments`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            withNode(PROVIDER) {
+                // given
+                val inheritors = mapOf("1" to 6000, "2" to 4000)
+                issueTestament(issuerId, inheritors)
+            }
+
+            // when
+            withNode(BANK) {
+                revokeTestament(issuerId) {
+                    // then
+                    failure()
+                }
+            }
+        }
+
+        @Test
+        fun `Should not revoke revoked testament`() = withNode(PROVIDER) {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            issueTestament(issuerId, inheritors)
+            revokeTestament(issuerId)
+
+            // when
+            revokeTestament(issuerId) {
+                // then
+                failure("revoked")
+            }
         }
 
         @Test
         fun `Should not revoke executed testament`() {
+            // TODO: execute: test
         }
     }
 
@@ -237,6 +332,11 @@ class TestamentTest {
                 // then
                 failure(BANK)
             }
+        }
+
+        @Test
+        fun `Should not store gold to executed testament account`() {
+            // TODO: execute: test
         }
     }
 
@@ -366,6 +466,19 @@ class TestamentTest {
         )
     }
 
+    private fun revokeTestament(
+        issuerId: String,
+        outcome: FlowId.() -> Unit = { success() },
+    ) {
+        startFlow(
+            flowName = RevokeTestamentFlow::class.java.name,
+            parametersInJson = mapOf(
+                "issuer" to issuerId,
+            ).toJson(),
+            outcome = outcome,
+        )
+    }
+
     private fun storeGold(
         holderId: String,
         amount: Int,
@@ -416,7 +529,7 @@ class TestamentTest {
         }
     }
 
-    private fun FlowId.failure(message: String) {
+    private fun FlowId.failure(message: String = "") {
         eventually {
             with(retrieveOutcome()) {
                 status shouldBe HttpStatus.OK
