@@ -558,28 +558,105 @@ class TestamentTest {
         @Test
         fun `Should execute testament`() {
             // given
-            // issue testament
-            // store gold to issuer
-            // announce testament
+            val issuerId = UUID.randomUUID().toString()
+            withNode(PROVIDER) {
+                issueTestament(issuerId, mapOf("1" to 6000, "2" to 4000))
+            }
+            withNode(BANK) {
+                storeGold(issuerId, 3000)
+            }
+            withNode(GOVERNMENT) {
+                announceTestament(issuerId)
+            }
 
-            // when
-            // execute
+            withNode(BANK) {
+                // when
+                executeTestament(issuerId)
 
-            // then
-            // testament executed
-            // gold transfered
+                // then
+                retrieveTestament(issuerId, 0)["executed"] shouldBe true
+                retrieveAccount("1")["amount"] shouldBe 1800
+                retrieveAccount("2")["amount"] shouldBe 1200
+            }
         }
 
         @Test
         fun `Only bank should execute testaments`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            withNode(PROVIDER) {
+                issueTestament(issuerId, mapOf("1" to 6000, "2" to 4000))
+            }
+            withNode(BANK) {
+                storeGold(issuerId, 3000)
+            }
+            withNode(GOVERNMENT) {
+                announceTestament(issuerId)
+            }
+
+            withNode(GOVERNMENT) {
+                // when
+                executeTestament(issuerId) {
+                    // then
+                    failure(BANK)
+                }
+            }
         }
 
         @Test
         fun `Should not execute if not announced`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            withNode(PROVIDER) {
+                issueTestament(issuerId, mapOf("1" to 6000, "2" to 4000))
+            }
+            withNode(BANK) {
+                storeGold(issuerId, 3000)
+
+                // when
+                executeTestament(issuerId) {
+                    // then
+                    failure("announced")
+                }
+            }
         }
 
         @Test
         fun `Should not execute if already executed`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            withNode(PROVIDER) {
+                issueTestament(issuerId, mapOf("1" to 6000, "2" to 4000))
+            }
+            withNode(BANK) {
+                storeGold(issuerId, 3000)
+            }
+            withNode(GOVERNMENT) {
+                announceTestament(issuerId)
+            }
+
+            withNode(BANK) {
+                executeTestament(issuerId)
+
+                // when
+                executeTestament(issuerId) {
+                    // then
+                    failure("executed")
+                }
+            }
+        }
+
+        private fun executeTestament(
+            issuerId: String,
+            outcome: FlowId.() -> Unit = { success() },
+        ) {
+            startFlow(
+                flowName = ExecuteTestamentFlow::class.java.name,
+                parametersInJson = mapOf(
+                    "issuer" to issuerId,
+                ).toJson(),
+                outcome = outcome,
+            )
         }
     }
 
