@@ -19,9 +19,9 @@ data class AccountState(
     val holder: String,
     val amount: BigInteger,
     val bank: Party,
-    val approver: Party,
+    val signer: Party,
 ) : LinearState, JsonRepresentable, QueryableState, ToDto<AccountStateDto> {
-    override val participants = listOf(bank, approver)
+    override val participants = listOf(bank, signer)
 
     override fun generateMappedObject(schema: MappedSchema) = when (schema) {
         is AccountSchemaV1 -> AccountSchemaV1.PersistentAccount(holder)
@@ -39,7 +39,7 @@ data class AccountState(
         holder,
         amount.toString(),
         bank.name.toString(),
-        approver.name.toString(),
+        signer.name.toString(),
     )
 }
 
@@ -49,5 +49,5 @@ data class AccountStateDto(
     val holder: String,
     val amount: String,
     val provider: String,
-    val approver: String,
+    val signer: String,
 )

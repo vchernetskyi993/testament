@@ -1,7 +1,13 @@
 package com.example.testament.flows
 
-import com.example.testament.GoldFlowHelper
 import com.example.testament.JustSignFlowAcceptor
+import com.example.testament.TransactionHelper
+import com.example.testament.bank
+import com.example.testament.contracts.TestamentContract
+import com.example.testament.latestState
+import com.example.testament.provider
+import com.example.testament.schema.TestamentSchemaV1
+import com.example.testament.states.TestamentState
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.InitiatedBy
@@ -15,16 +21,17 @@ import net.corda.v5.application.flows.flowservices.FlowMessaging
 import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.IdentityService
 import net.corda.v5.application.services.json.JsonMarshallingService
+import net.corda.v5.application.services.json.parseJson
 import net.corda.v5.application.services.persistence.PersistenceService
 import net.corda.v5.base.annotations.Suspendable
+import net.corda.v5.ledger.contracts.Command
 import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
-import java.math.BigInteger
 
 @InitiatingFlow
 @StartableByRPC
-class StoreGoldFlow @JsonConstructor constructor(
+class AnnounceTestamentFlow @JsonConstructor constructor(
     private val params: RpcStartFlowRequestParameters,
 ) : Flow<SignedTransactionDigest> {
 
@@ -53,18 +60,44 @@ class StoreGoldFlow @JsonConstructor constructor(
     lateinit var persistenceService: PersistenceService
 
     @Suspendable
-    override fun call(): SignedTransactionDigest = GoldFlowHelper(
-        flowEngine,
-        flowIdentity,
-        flowMessaging,
-        transactionBuilderFactory,
-        identityService,
-        notaryLookup,
-        jsonMarshallingService,
-        persistenceService,
-    ).process(params, BigInteger::add)
+    override fun call(): SignedTransactionDigest {
+        val input = jsonMarshallingService.parseJson<TestamentIssuerInput>(params.parametersInJson)
+
+        val government = flowIdentity.ourIdentity
+        val bank = identityService.bank()
+        val provider = identityService.provider()
+
+        val existing = persistenceService.latestState<TestamentState>(
+            TestamentSchemaV1.PersistentTestament.BY_ISSUER,
+            mapOf("issuerId" to input.issuer),
+        )
+        val revoked = existing?.state?.data?.copy(
+            updater = government,
+            signers = listOf(bank, provider),
+            announced = true,
+        )
+
+        val txCommand = Command(
+            TestamentContract.Commands.Announce(),
+            listOf(government.owningKey, bank.owningKey, provider.owningKey)
+        )
+
+        return TransactionHelper(
+            notaryLookup,
+            transactionBuilderFactory,
+            flowMessaging,
+            flowEngine,
+            jsonMarshallingService
+        ).sign(
+            command = txCommand,
+            signers = listOf(bank, provider),
+            input = listOfNotNull(existing),
+            output = revoked,
+            contract = TestamentContract::class,
+        )
+    }
 }
 
-@InitiatedBy(StoreGoldFlow::class)
-class StoreGoldFlowAcceptor(otherPartySession: FlowSession) :
+@InitiatedBy(AnnounceTestamentFlow::class)
+class AnnounceTestamentFlowAcceptor(otherPartySession: FlowSession) :
     JustSignFlowAcceptor(otherPartySession)

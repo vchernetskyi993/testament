@@ -8,7 +8,7 @@ Network consists of 3 organisations:
 
 * Provider - issue/update/revoke testaments
 * Bank - holds user tokens; distributes them on testament execution
-* Government - confirms all operations; triggers testament execution
+* Government - confirms all operations; announces testament execution
 
 ## Environment Requirements:
 
@@ -46,6 +46,10 @@ PROVIDER_PASSWORD=Password1!
 BANK_PORT=12116
 BANK_USER=bankadmin
 BANK_PASSWORD=Password1!
+# government node
+GOV_PORT=12120
+GOV_USER=govadmin
+GOV_PASSWORD=Password1!
 # testament issuer & account holder
 USER_ID=3
 ```
@@ -89,6 +93,11 @@ curl --request GET "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/flowoutc
 curl --request GET "https://localhost:$BANK_PORT/api/v1/flowstarter/flowoutcome/$FLOW_ID" \
   --insecure \
   -u $BANK_USER:$BANK_PASSWORD | jq
+  
+# OR Government:
+curl --request GET "https://localhost:$GOV_PORT/api/v1/flowstarter/flowoutcome/$FLOW_ID" \
+  --insecure \
+  -u $GOV_USER:$GOV_PASSWORD | jq
 ```
 
 Fetch testament by issuer:
@@ -156,6 +165,26 @@ jq -nc --arg clientId $(uuidgen) --arg userId $USER_ID '{
   }
 }' | curl --request POST "https://localhost:$PROVIDER_PORT/api/v1/flowstarter/startflow" \
   -u $PROVIDER_USER:$PROVIDER_PASSWORD \
+  --insecure \
+  --header 'Content-Type: application/json' \
+  --data-binary @- | jq
+```
+
+Announce testament:
+
+```bash
+jq -nc --arg clientId $(uuidgen) --arg userId $USER_ID '{
+  "issuer": $userId
+} | tostring as $params | {
+  "rpcStartFlowRequest": {
+    "clientId": $clientId,
+    "flowName": "com.example.testament.flows.AnnounceTestamentFlow",
+    "parameters": {
+      "parametersInJson": $params
+    }
+  }
+}' | curl --request POST "https://localhost:$GOV_PORT/api/v1/flowstarter/startflow" \
+  -u $GOV_USER:$GOV_PASSWORD \
   --insecure \
   --header 'Content-Type: application/json' \
   --data-binary @- | jq

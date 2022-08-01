@@ -48,8 +48,8 @@ class TransactionHelper(
     @Suspendable
     fun sign(
         command: Command<*>,
-        approver: Party,
-        input: StateAndRef<*>? = null,
+        signers: Collection<Party>,
+        input: Collection<StateAndRef<*>> = listOf(),
         output: ContractState? = null,
         contract: KClass<out Contract>? = null,
     ): SignedTransactionDigest {
@@ -60,8 +60,8 @@ class TransactionHelper(
             .setNotary(notary)
             .addCommand(command)
 
-        if (input != null) {
-            txBuilder.addInputState(input)
+        input.forEach {
+            txBuilder.addInputState(it)
         }
 
         if (output != null) {
@@ -82,10 +82,10 @@ class TransactionHelper(
 
         // Stage 4.
         // Send the state to the counterparty, and receive it back with their signature.
-        val otherPartySession = flowMessaging.initiateFlow(approver)
+        val otherPartySessions = signers.map(flowMessaging::initiateFlow)
         val fullySignedTx = flowEngine.subFlow(
             CollectSignaturesFlow(
-                partSignedTx, setOf(otherPartySession),
+                partSignedTx, otherPartySessions,
             )
         )
 
@@ -93,7 +93,7 @@ class TransactionHelper(
         // Notarise and record the transaction in both parties' vaults.
         val notarisedTx = flowEngine.subFlow(
             FinalityFlow(
-                fullySignedTx, setOf(otherPartySession),
+                fullySignedTx, otherPartySessions,
             )
         )
 

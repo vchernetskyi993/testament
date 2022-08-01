@@ -26,10 +26,12 @@ import kotlin.reflect.KClass
 private const val NETWORK = "testament-network"
 private const val PROVIDER = "TestamentProvider"
 private const val BANK = "Bank"
+private const val GOVERNMENT = "Government"
 
 private val credentials = mapOf(
     PROVIDER to Credentials("testamentadmin", "Password1!"),
     BANK to Credentials("bankadmin", "Password1!"),
+    GOVERNMENT to Credentials("govadmin", "Password1!"),
 )
 
 typealias FlowId = String
@@ -180,9 +182,8 @@ class TestamentTest {
         fun `Only provider should update testaments`() {
             // given
             val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
             withNode(PROVIDER) {
-                // given
-                val inheritors = mapOf("1" to 6000, "2" to 4000)
                 issueTestament(issuerId, inheritors)
             }
             val updatedInheritors = mapOf("1" to 5000, "2" to 2000, "3" to 5000)
@@ -190,7 +191,7 @@ class TestamentTest {
             withNode(BANK) {
                 updateTestament(issuerId, updatedInheritors) {
                     // then
-                    failure(PROVIDER)
+                    failure()
                 }
             }
         }
@@ -212,8 +213,25 @@ class TestamentTest {
         }
 
         @Test
-        fun `Should not update executed testament`() {
-            // TODO: execute: test
+        fun `Should not update announced testament`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            val updatedInheritors = mapOf("1" to 5000, "2" to 2000, "3" to 3000)
+            withNode(PROVIDER) {
+                issueTestament(issuerId, inheritors)
+            }
+            withNode(GOVERNMENT) {
+                announceTestament(issuerId)
+            }
+
+            withNode(PROVIDER) {
+                // when
+                updateTestament(issuerId, updatedInheritors) {
+                    // then
+                    failure("announced")
+                }
+            }
         }
 
         private fun updateTestament(
@@ -255,9 +273,8 @@ class TestamentTest {
         fun `Only provider should revoke testaments`() {
             // given
             val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
             withNode(PROVIDER) {
-                // given
-                val inheritors = mapOf("1" to 6000, "2" to 4000)
                 issueTestament(issuerId, inheritors)
             }
 
@@ -286,8 +303,24 @@ class TestamentTest {
         }
 
         @Test
-        fun `Should not revoke executed testament`() {
-            // TODO: execute: test
+        fun `Should not revoke announced testament`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            withNode(PROVIDER) {
+                issueTestament(issuerId, inheritors)
+            }
+            withNode(GOVERNMENT) {
+                announceTestament(issuerId)
+            }
+
+            withNode(PROVIDER) {
+                // when
+                revokeTestament(issuerId) {
+                    // then
+                    failure("announced")
+                }
+            }
         }
     }
 
@@ -335,8 +368,24 @@ class TestamentTest {
         }
 
         @Test
-        fun `Should not store gold to executed testament account`() {
-            // TODO: execute: test
+        fun `Should not store gold to announced testament account`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            withNode(PROVIDER) {
+                issueTestament(issuerId, inheritors)
+            }
+            withNode(GOVERNMENT) {
+                announceTestament(issuerId)
+            }
+
+            // when
+            withNode(BANK) {
+                storeGold(issuerId, 3000) {
+                    // then
+                    failure("announced")
+                }
+            }
         }
     }
 
@@ -425,18 +474,112 @@ class TestamentTest {
     }
 
     @Nested
+    inner class AnnounceTestament {
+
+        @Test
+        fun `Should announce testament`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            withNode(PROVIDER) {
+                issueTestament(issuerId, inheritors)
+            }
+
+            // when
+            withNode(GOVERNMENT) {
+                announceTestament(issuerId)
+            }
+
+            // then
+            withNode(BANK) {
+                val stored = retrieveTestament(issuerId)
+                stored["issuer"] shouldBe issuerId
+                stored.getJSONObject("inheritors").toMap() shouldBe inheritors
+                stored["announced"] shouldBe true
+            }
+        }
+
+        @Test
+        fun `Only government should announce testament`() = withNode(PROVIDER) {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            issueTestament(issuerId, inheritors)
+
+            // when
+            announceTestament(issuerId) {
+                // then
+                failure(GOVERNMENT)
+            }
+        }
+
+        @Test
+        fun `Should not announce announced testament`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            withNode(PROVIDER) {
+                issueTestament(issuerId, inheritors)
+            }
+            withNode(GOVERNMENT) {
+                announceTestament(issuerId)
+
+                // when
+                announceTestament(issuerId) {
+                    // then
+                    failure("announced")
+                }
+            }
+        }
+
+        @Test
+        fun `Should not announce revoked testament`() {
+            // given
+            val issuerId = UUID.randomUUID().toString()
+            val inheritors = mapOf("1" to 6000, "2" to 4000)
+            withNode(PROVIDER) {
+                issueTestament(issuerId, inheritors)
+                revokeTestament(issuerId)
+            }
+
+            withNode(GOVERNMENT) {
+                // when
+                announceTestament(issuerId) {
+                    // then
+                    failure("revoked")
+                }
+            }
+        }
+    }
+
+    @Nested
     inner class ExecuteTestament {
-        // TODO: test
         @Test
         fun `Should execute testament`() {
+            // given
+            // issue testament
+            // store gold to issuer
+            // announce testament
+
+            // when
+            // execute
+
+            // then
+            // testament executed
+            // gold transfered
+        }
+
+        @Test
+        fun `Only bank should execute testaments`() {
+        }
+
+        @Test
+        fun `Should not execute if not announced`() {
         }
 
         @Test
         fun `Should not execute if already executed`() {
-        }
-
-        @Test
-        fun `Should not execute revoked testament`() {
         }
     }
 
@@ -472,6 +615,19 @@ class TestamentTest {
     ) {
         startFlow(
             flowName = RevokeTestamentFlow::class.java.name,
+            parametersInJson = mapOf(
+                "issuer" to issuerId,
+            ).toJson(),
+            outcome = outcome,
+        )
+    }
+
+    private fun announceTestament(
+        issuerId: String,
+        outcome: FlowId.() -> Unit = { success() },
+    ) {
+        startFlow(
+            flowName = AnnounceTestamentFlow::class.java.name,
             parametersInJson = mapOf(
                 "issuer" to issuerId,
             ).toJson(),

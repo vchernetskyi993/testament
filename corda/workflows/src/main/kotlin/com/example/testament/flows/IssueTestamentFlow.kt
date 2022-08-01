@@ -28,11 +28,6 @@ import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
 
-data class TestamentInput(
-    val issuer: String,
-    val inheritors: Map<String, Int>,
-)
-
 @InitiatingFlow
 @StartableByRPC
 class IssueTestamentFlow @JsonConstructor constructor(
@@ -65,7 +60,7 @@ class IssueTestamentFlow @JsonConstructor constructor(
 
     @Suspendable
     override fun call(): SignedTransactionDigest {
-        val input = jsonMarshallingService.parseJson<TestamentInput>(params.parametersInJson)
+        val input = jsonMarshallingService.parseJson<TestamentDataInput>(params.parametersInJson)
 
         val provider = flowIdentity.ourIdentity
         val existing = persistenceService.latestState<TestamentState>(
@@ -78,7 +73,7 @@ class IssueTestamentFlow @JsonConstructor constructor(
             input.issuer,
             input.inheritors,
             provider,
-            government,
+            listOf(government),
             revoked = false,
         )
         val txCommand = Command(
@@ -94,8 +89,8 @@ class IssueTestamentFlow @JsonConstructor constructor(
             jsonMarshallingService,
         ).sign(
             command = txCommand,
-            approver = government,
-            input = existing,
+            signers = listOf(government),
+            input = listOfNotNull(existing),
             output = testamentState,
             contract = TestamentContract::class,
         )

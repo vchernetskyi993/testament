@@ -17,12 +17,13 @@ import java.util.UUID
 data class TestamentState(
     val issuer: String,
     val inheritors: Map<String, Int>,
-    val provider: Party,
-    val approver: Party,
+    val updater: Party,
+    val signers: Collection<Party>,
     val revoked: Boolean = false,
+    val announced: Boolean = false,
     val executed: Boolean = false,
 ) : LinearState, JsonRepresentable, QueryableState, ToDto<TestamentStateDto> {
-    override val participants = listOf(provider, approver)
+    override val participants = listOf(listOf(updater), signers).flatten()
 
     override fun generateMappedObject(schema: MappedSchema) = when (schema) {
         is TestamentSchemaV1 -> TestamentSchemaV1.PersistentTestament(
@@ -41,10 +42,11 @@ data class TestamentState(
         linearId.id,
         issuer,
         inheritors,
-        provider.name.toString(),
-        approver.name.toString(),
+        updater.name.toString(),
+        signers.map { it.name.toString() },
         revoked,
-        executed
+        announced,
+        executed,
     )
 }
 
@@ -53,8 +55,9 @@ data class TestamentStateDto(
     val id: UUID,
     val issuer: String,
     val inheritors: Map<String, Int>,
-    val provider: String,
-    val approver: String,
+    val updater: String,
+    val signers: Collection<String>,
     val revoked: Boolean,
+    val announced: Boolean,
     val executed: Boolean,
 )

@@ -28,10 +28,6 @@ import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
 
-data class RevokeTestamentInput(
-    val issuer: String,
-)
-
 @InitiatingFlow
 @StartableByRPC
 class RevokeTestamentFlow @JsonConstructor constructor(
@@ -64,7 +60,7 @@ class RevokeTestamentFlow @JsonConstructor constructor(
 
     @Suspendable
     override fun call(): SignedTransactionDigest {
-        val input = jsonMarshallingService.parseJson<RevokeTestamentInput>(params.parametersInJson)
+        val input = jsonMarshallingService.parseJson<TestamentIssuerInput>(params.parametersInJson)
 
         val provider = flowIdentity.ourIdentity
         val government = identityService.government()
@@ -74,7 +70,7 @@ class RevokeTestamentFlow @JsonConstructor constructor(
             mapOf("issuerId" to input.issuer),
         )
         val revoked = existing?.state?.data?.copy(
-            provider = flowIdentity.ourIdentity,
+            updater = flowIdentity.ourIdentity,
             revoked = true
         )
 
@@ -91,8 +87,8 @@ class RevokeTestamentFlow @JsonConstructor constructor(
             jsonMarshallingService
         ).sign(
             command = txCommand,
-            approver = government,
-            input = existing,
+            signers = listOf(government),
+            input = listOfNotNull(existing),
             output = revoked,
             contract = TestamentContract::class,
         )

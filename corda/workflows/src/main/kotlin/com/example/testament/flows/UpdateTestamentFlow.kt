@@ -60,7 +60,7 @@ class UpdateTestamentFlow @JsonConstructor constructor(
 
     @Suspendable
     override fun call(): SignedTransactionDigest {
-        val input = jsonMarshallingService.parseJson<TestamentInput>(params.parametersInJson)
+        val input = jsonMarshallingService.parseJson<TestamentDataInput>(params.parametersInJson)
 
         val provider = flowIdentity.ourIdentity
         val existing = persistenceService.latestState<TestamentState>(
@@ -69,11 +69,9 @@ class UpdateTestamentFlow @JsonConstructor constructor(
         )
         val government = identityService.government()
 
-        val updated = TestamentState(
-            input.issuer,
-            input.inheritors,
-            provider,
-            government,
+        val updated = existing?.state?.data?.copy(
+            updater = provider,
+            inheritors = input.inheritors,
         )
         val txCommand = Command(
             TestamentContract.Commands.Update(),
@@ -88,8 +86,8 @@ class UpdateTestamentFlow @JsonConstructor constructor(
             jsonMarshallingService,
         ).sign(
             command = txCommand,
-            approver = government,
-            input = existing,
+            signers = listOf(government),
+            input = listOfNotNull(existing),
             output = updated,
             contract = TestamentContract::class,
         )
