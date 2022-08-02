@@ -2,7 +2,7 @@
 
 [Ethereum Testament](../ethereum) adopted for Corda.
 
-[//]: # (TODO: include diagram)
+![diagram](./diagram.png)
 
 Network consists of 3 organisations:
 
@@ -17,7 +17,7 @@ Network consists of 3 organisations:
 3. Download and install `corda-cli`
 
 You can find detailed instructions for steps 2 - 3
-at [here](https://docs.r3.com/en/platform/corda/5.0-dev-preview-1/getting-started/overview.html)
+[here](https://docs.r3.com/en/platform/corda/5.0-dev-preview-1/getting-started/overview.html)
 
 ## Local network
 
