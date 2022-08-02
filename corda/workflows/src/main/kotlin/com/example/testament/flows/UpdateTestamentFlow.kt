@@ -4,9 +4,7 @@ import com.example.testament.JustSignFlowAcceptor
 import com.example.testament.TransactionHelper
 import com.example.testament.contracts.TestamentContract
 import com.example.testament.government
-import com.example.testament.latestState
-import com.example.testament.schema.TestamentSchemaV1
-import com.example.testament.states.TestamentState
+import com.example.testament.testament
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.InitiatedBy
@@ -63,10 +61,7 @@ class UpdateTestamentFlow @JsonConstructor constructor(
         val input = jsonMarshallingService.parseJson<TestamentDataInput>(params.parametersInJson)
 
         val provider = flowIdentity.ourIdentity
-        val existing = persistenceService.latestState<TestamentState>(
-            TestamentSchemaV1.PersistentTestament.BY_ISSUER,
-            mapOf("issuerId" to input.issuer),
-        )
+        val existing = persistenceService.testament(input.issuer)
         val government = identityService.government()
 
         val updated = existing?.state?.data?.copy(
@@ -87,9 +82,9 @@ class UpdateTestamentFlow @JsonConstructor constructor(
         ).sign(
             command = txCommand,
             signers = listOf(government),
-            input = listOfNotNull(existing),
-            output = updated,
-            contract = TestamentContract::class,
+            inputs = listOfNotNull(existing),
+            outputs = listOfNotNull(updated),
+            contracts = listOf(TestamentContract::class),
         )
     }
 }

@@ -559,8 +559,10 @@ class TestamentTest {
         fun `Should execute testament`() {
             // given
             val issuerId = UUID.randomUUID().toString()
+            val firstInheritor = UUID.randomUUID().toString()
+            val secondInheritor = UUID.randomUUID().toString()
             withNode(PROVIDER) {
-                issueTestament(issuerId, mapOf("1" to 6000, "2" to 4000))
+                issueTestament(issuerId, mapOf(firstInheritor to 6000, secondInheritor to 4000))
             }
             withNode(BANK) {
                 storeGold(issuerId, 3000)
@@ -574,9 +576,10 @@ class TestamentTest {
                 executeTestament(issuerId)
 
                 // then
-                retrieveTestament(issuerId, 0)["executed"] shouldBe true
-                retrieveAccount("1")["amount"] shouldBe 1800
-                retrieveAccount("2")["amount"] shouldBe 1200
+                retrieveTestament(issuerId, 2)["executed"] shouldBe true
+                retrieveAccount(firstInheritor)["amount"] shouldBe "1800"
+                retrieveAccount(secondInheritor)["amount"] shouldBe "1200"
+                retrieveAccount(issuerId, 1)["amount"] shouldBe "0"
             }
         }
 
@@ -616,7 +619,7 @@ class TestamentTest {
                 // when
                 executeTestament(issuerId) {
                     // then
-                    failure("announced")
+                    failure()
                 }
             }
         }

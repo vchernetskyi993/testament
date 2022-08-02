@@ -6,52 +6,58 @@ import com.example.testament.states.TestamentState
 import net.corda.v5.ledger.contracts.CommandData
 import net.corda.v5.ledger.contracts.Contract
 import net.corda.v5.ledger.contracts.Requirements
-import net.corda.v5.ledger.contracts.requireSingleCommand
 import net.corda.v5.ledger.contracts.requireThat
-import net.corda.v5.ledger.contracts.select
 import net.corda.v5.ledger.transactions.LedgerTransaction
 import net.corda.v5.ledger.transactions.inputsOfType
 import net.corda.v5.ledger.transactions.outputsOfType
 
 class TestamentContract : Contract {
     override fun verify(tx: LedgerTransaction) {
-        if (tx.commands.select<AccountContract.Commands>().isNotEmpty()) {
-            // no need to validate testament state for account transaction
-            return
-        }
-        val command = tx.commands.requireSingleCommand<Commands>()
         val output = tx.outputsOfType<TestamentState>().single()
         requireThat {
             "Inheritors should not be empty" using output.inheritors.isNotEmpty()
             "Shares should sum up to 10000" using (output.inheritors.values.sum() == 10000)
         }
-        when (command.value) {
+        when (tx.commands.single().value) {
             is Commands.Issue -> requireThat {
                 "Testament for the issuer already exists." using (
                         tx.inputStates.isEmpty()
                                 || tx.inputsOfType<TestamentState>().single().revoked
                         )
-                updaterIsProvider(output)
+                updaterIs(output, PROVIDER_ORG)
             }
             is Commands.Update -> requireThat {
                 txHasSingleInput(tx)
                 isNotRevoked(tx)
                 isNotAnnounced(tx)
-                updaterIsProvider(output)
+                updaterIs(output, PROVIDER_ORG)
             }
             is Commands.Revoke -> requireThat {
                 txHasSingleInput(tx)
                 isNotRevoked(tx)
                 isNotAnnounced(tx)
                 "Should become revoked" using output.revoked
-                updaterIsProvider(output)
+                updaterIs(output, PROVIDER_ORG)
             }
             is Commands.Announce -> requireThat {
                 txHasSingleInput(tx)
                 isNotRevoked(tx)
                 isNotAnnounced(tx)
                 "Should become announced" using output.announced
-                updaterIsGovernment(output)
+                updaterIs(output, GOV_ORG)
+            }
+            is Commands.Execute -> requireThat {
+                txHasSingleInput(tx)
+                val input = tx.inputsOfType<TestamentState>().single()
+                "Should be announced" using input.announced
+                "Should not be executed" using !input.executed
+                "Should become executed" using output.executed
+            }
+            is AccountContract.Commands.Store -> requireThat {
+                txHasSingleInput(tx)
+                val input = tx.inputsOfType<TestamentState>().single()
+                "Testament should not be announced" using !input.announced
+                "Testament should not change" using (input == output)
             }
         }
     }
@@ -68,14 +74,9 @@ class TestamentContract : Contract {
         "Input should not be announced" using !tx.inputsOfType<TestamentState>().single().announced
     }
 
-    private fun Requirements.updaterIsProvider(output: TestamentState) {
-        "Only $PROVIDER_ORG can change testaments" using
-                (output.updater.name.organisation == PROVIDER_ORG)
-    }
-
-    private fun Requirements.updaterIsGovernment(output: TestamentState) {
-        "Only $GOV_ORG can announce testaments" using
-                (output.updater.name.organisation == GOV_ORG)
+    private fun Requirements.updaterIs(output: TestamentState, updater: String) {
+        "Should be updated by $updater" using
+                (output.updater.name.organisation == updater)
     }
 
     interface Commands : CommandData {
@@ -83,5 +84,6 @@ class TestamentContract : Contract {
         class Update : Commands
         class Revoke : Commands
         class Announce : Commands
+        class Execute : Commands
     }
 }

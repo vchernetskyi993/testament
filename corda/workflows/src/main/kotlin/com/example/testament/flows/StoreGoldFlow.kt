@@ -2,6 +2,8 @@ package com.example.testament.flows
 
 import com.example.testament.GoldFlowHelper
 import com.example.testament.JustSignFlowAcceptor
+import com.example.testament.contracts.AccountContract
+import com.example.testament.testament
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.InitiatedBy
@@ -15,8 +17,10 @@ import net.corda.v5.application.flows.flowservices.FlowMessaging
 import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.IdentityService
 import net.corda.v5.application.services.json.JsonMarshallingService
+import net.corda.v5.application.services.json.parseJson
 import net.corda.v5.application.services.persistence.PersistenceService
 import net.corda.v5.base.annotations.Suspendable
+import net.corda.v5.ledger.contracts.requireThat
 import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
@@ -62,7 +66,7 @@ class StoreGoldFlow @JsonConstructor constructor(
         notaryLookup,
         jsonMarshallingService,
         persistenceService,
-    ).process(params, BigInteger::add)
+    ).process(params, AccountContract.Commands.Store(), BigInteger::add)
 }
 
 @InitiatedBy(StoreGoldFlow::class)

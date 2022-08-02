@@ -4,10 +4,8 @@ import com.example.testament.JustSignFlowAcceptor
 import com.example.testament.TransactionHelper
 import com.example.testament.bank
 import com.example.testament.contracts.TestamentContract
-import com.example.testament.latestState
 import com.example.testament.provider
-import com.example.testament.schema.TestamentSchemaV1
-import com.example.testament.states.TestamentState
+import com.example.testament.testament
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.InitiatedBy
@@ -67,10 +65,7 @@ class AnnounceTestamentFlow @JsonConstructor constructor(
         val bank = identityService.bank()
         val provider = identityService.provider()
 
-        val existing = persistenceService.latestState<TestamentState>(
-            TestamentSchemaV1.PersistentTestament.BY_ISSUER,
-            mapOf("issuerId" to input.issuer),
-        )
+        val existing = persistenceService.testament(input.issuer)
         val revoked = existing?.state?.data?.copy(
             updater = government,
             signers = listOf(bank, provider),
@@ -91,9 +86,9 @@ class AnnounceTestamentFlow @JsonConstructor constructor(
         ).sign(
             command = txCommand,
             signers = listOf(bank, provider),
-            input = listOfNotNull(existing),
-            output = revoked,
-            contract = TestamentContract::class,
+            inputs = listOfNotNull(existing),
+            outputs = listOfNotNull(revoked),
+            contracts = listOf(TestamentContract::class),
         )
     }
 }

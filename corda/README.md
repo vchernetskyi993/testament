@@ -190,6 +190,26 @@ jq -nc --arg clientId $(uuidgen) --arg userId $USER_ID '{
   --data-binary @- | jq
 ```
 
+Execute testament:
+
+```bash
+jq -nc --arg clientId $(uuidgen) --arg userId $USER_ID '{
+  "issuer": $userId
+} | tostring as $params | {
+  "rpcStartFlowRequest": {
+    "clientId": $clientId,
+    "flowName": "com.example.testament.flows.ExecuteTestamentFlow",
+    "parameters": {
+      "parametersInJson": $params
+    }
+  }
+}' | curl --request POST "https://localhost:$BANK_PORT/api/v1/flowstarter/startflow" \
+  -u $BANK_USER:$BANK_PASSWORD \
+  --insecure \
+  --header 'Content-Type: application/json' \
+  --data-binary @- | jq
+```
+
 Store gold to Bank:
 
 ```bash

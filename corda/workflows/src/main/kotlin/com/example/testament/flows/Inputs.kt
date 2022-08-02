@@ -12,4 +12,5 @@ data class TestamentIssuerInput(
 data class GoldInput(
     val holder: String,
     val amount: String,
+    val signers: Collection<String> = listOf(),
 )

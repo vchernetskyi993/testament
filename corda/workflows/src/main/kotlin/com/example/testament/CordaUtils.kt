@@ -5,7 +5,6 @@ import net.corda.systemflows.FinalityFlow
 import net.corda.systemflows.ReceiveFinalityFlow
 import net.corda.systemflows.SignTransactionFlow
 import net.corda.v5.application.flows.Flow
-import net.corda.v5.application.flows.FlowException
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.flowservices.FlowEngine
 import net.corda.v5.application.flows.flowservices.FlowMessaging
@@ -49,9 +48,9 @@ class TransactionHelper(
     fun sign(
         command: Command<*>,
         signers: Collection<Party>,
-        input: Collection<StateAndRef<*>> = listOf(),
-        output: ContractState? = null,
-        contract: KClass<out Contract>? = null,
+        inputs: Collection<StateAndRef<*>> = listOf(),
+        outputs: List<ContractState> = listOf(),
+        contracts: List<KClass<out Contract>> = listOf(),
     ): SignedTransactionDigest {
         // Stage 1.
         // Generate an unsigned transaction.
@@ -60,16 +59,12 @@ class TransactionHelper(
             .setNotary(notary)
             .addCommand(command)
 
-        input.forEach {
+        inputs.forEach {
             txBuilder.addInputState(it)
         }
 
-        if (output != null) {
-            txBuilder.addOutputState(
-                output,
-                contract?.qualifiedName
-                    ?: throw FlowException("Contract class argument is required for output state")
-            )
+        outputs.forEachIndexed { i, output ->
+            txBuilder.addOutputState(output, contracts[i].java.name)
         }
 
         // Stage 2.

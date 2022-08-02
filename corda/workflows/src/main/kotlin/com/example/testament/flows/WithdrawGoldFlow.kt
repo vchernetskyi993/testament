@@ -2,6 +2,7 @@ package com.example.testament.flows
 
 import com.example.testament.GoldFlowHelper
 import com.example.testament.JustSignFlowAcceptor
+import com.example.testament.contracts.AccountContract
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.InitiatedBy
@@ -15,6 +16,7 @@ import net.corda.v5.application.flows.flowservices.FlowMessaging
 import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.IdentityService
 import net.corda.v5.application.services.json.JsonMarshallingService
+import net.corda.v5.application.services.json.parseJson
 import net.corda.v5.application.services.persistence.PersistenceService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.ledger.services.NotaryLookupService
@@ -62,7 +64,11 @@ class WithdrawGoldFlow @JsonConstructor constructor(
         notaryLookup,
         jsonMarshallingService,
         persistenceService,
-    ).process(params, BigInteger::subtract)
+    ).process(
+        params,
+        AccountContract.Commands.Withdraw(),
+        BigInteger::subtract
+    )
 }
 
 @InitiatedBy(WithdrawGoldFlow::class)

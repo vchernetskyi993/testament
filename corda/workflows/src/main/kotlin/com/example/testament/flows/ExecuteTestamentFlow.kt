@@ -2,12 +2,12 @@ package com.example.testament.flows
 
 import com.example.testament.JustSignFlowAcceptor
 import com.example.testament.TransactionHelper
-import com.example.testament.bank
+import com.example.testament.account
 import com.example.testament.contracts.TestamentContract
-import com.example.testament.latestState
+import com.example.testament.government
 import com.example.testament.provider
-import com.example.testament.schema.TestamentSchemaV1
 import com.example.testament.states.TestamentState
+import com.example.testament.testament
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.InitiatedBy
@@ -18,6 +18,7 @@ import net.corda.v5.application.flows.StartableByRPC
 import net.corda.v5.application.flows.flowservices.FlowEngine
 import net.corda.v5.application.flows.flowservices.FlowIdentity
 import net.corda.v5.application.flows.flowservices.FlowMessaging
+import net.corda.v5.application.identity.Party
 import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.IdentityService
 import net.corda.v5.application.services.json.JsonMarshallingService
@@ -63,23 +64,26 @@ class ExecuteTestamentFlow @JsonConstructor constructor(
     override fun call(): SignedTransactionDigest {
         val input = jsonMarshallingService.parseJson<TestamentIssuerInput>(params.parametersInJson)
 
-        val government = flowIdentity.ourIdentity
-        val bank = identityService.bank()
+        val bank = flowIdentity.ourIdentity
+        val government = identityService.government()
         val provider = identityService.provider()
 
-        val existing = persistenceService.latestState<TestamentState>(
-            TestamentSchemaV1.PersistentTestament.BY_ISSUER,
-            mapOf("issuerId" to input.issuer),
+        splitPossession(
+            persistenceService.testament(input.issuer)?.state?.data,
+            input.issuer,
+            listOf(government, provider)
         )
-        val revoked = existing?.state?.data?.copy(
-            updater = government,
-            signers = listOf(bank, provider),
-            announced = true,
+
+        val existing = persistenceService.testament(input.issuer)
+        val executed = existing?.state?.data?.copy(
+            updater = bank,
+            signers = listOf(government, provider),
+            executed = true,
         )
 
         val txCommand = Command(
-            TestamentContract.Commands.Announce(),
-            listOf(government.owningKey, bank.owningKey, provider.owningKey)
+            TestamentContract.Commands.Execute(),
+            listOf(bank.owningKey, government.owningKey, provider.owningKey)
         )
 
         return TransactionHelper(
@@ -90,11 +94,45 @@ class ExecuteTestamentFlow @JsonConstructor constructor(
             jsonMarshallingService
         ).sign(
             command = txCommand,
-            signers = listOf(bank, provider),
-            input = listOfNotNull(existing),
-            output = revoked,
-            contract = TestamentContract::class,
+            signers = listOf(government, provider),
+            inputs = listOfNotNull(existing),
+            outputs = listOfNotNull(executed),
+            contracts = listOf(TestamentContract::class),
         )
+    }
+
+    @Suspendable
+    private fun splitPossession(
+        testament: TestamentState?,
+        holder: String,
+        parties: Collection<Party>,
+    ) {
+        val possession = persistenceService.account(holder)?.state?.data?.amount
+        if (possession == null || possession <= 0.toBigInteger()) {
+            return
+        }
+        val partiesStr = parties.map { it.name.toString() }
+        testament?.inheritors?.forEach { (id, share) ->
+            val transfer = possession * share.toBigInteger() / 10000.toBigInteger()
+            flowEngine.subFlow(
+                StoreGoldFlow(
+                    RpcStartFlowRequestParameters(
+                        jsonMarshallingService.formatJson(
+                            GoldInput(id, transfer.toString(), partiesStr)
+                        )
+                    ),
+                )
+            )
+            flowEngine.subFlow(
+                WithdrawGoldFlow(
+                    RpcStartFlowRequestParameters(
+                        jsonMarshallingService.formatJson(
+                            GoldInput(holder, transfer.toString(), partiesStr)
+                        )
+                    ),
+                )
+            )
+        }
     }
 }
 

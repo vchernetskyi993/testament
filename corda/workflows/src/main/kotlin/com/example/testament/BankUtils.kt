@@ -1,15 +1,14 @@
 package com.example.testament
 
 import com.example.testament.contracts.AccountContract
+import com.example.testament.contracts.TestamentContract
 import com.example.testament.flows.GoldInput
-import com.example.testament.schema.AccountSchemaV1
-import com.example.testament.schema.TestamentSchemaV1
 import com.example.testament.states.AccountState
-import com.example.testament.states.TestamentState
 import net.corda.v5.application.flows.RpcStartFlowRequestParameters
 import net.corda.v5.application.flows.flowservices.FlowEngine
 import net.corda.v5.application.flows.flowservices.FlowIdentity
 import net.corda.v5.application.flows.flowservices.FlowMessaging
+import net.corda.v5.application.identity.CordaX500Name
 import net.corda.v5.application.services.IdentityService
 import net.corda.v5.application.services.json.JsonMarshallingService
 import net.corda.v5.application.services.json.parseJson
@@ -34,20 +33,15 @@ class GoldFlowHelper(
     @Suspendable
     fun process(
         params: RpcStartFlowRequestParameters,
+        command: AccountContract.Commands,
         operation: (BigInteger, BigInteger) -> BigInteger,
     ): SignedTransactionDigest {
         val input = jsonMarshallingService.parseJson<GoldInput>(params.parametersInJson)
 
         val bank = flowIdentity.ourIdentity
         val government = identityService.government()
-        val testament = persistenceService.latestState<TestamentState>(
-            TestamentSchemaV1.PersistentTestament.BY_ISSUER,
-            mapOf("issuerId" to input.holder)
-        )
-        val existingAccount = persistenceService.latestState<AccountState>(
-            AccountSchemaV1.PersistentAccount.BY_HOLDER,
-            mapOf("holderId" to input.holder),
-        )
+        val testament = persistenceService.testament(input.holder)
+        val existingAccount = persistenceService.account(input.holder)
         val existingAmount = existingAccount?.state?.data?.amount ?: 0.toBigInteger()
 
         val accountState = AccountState(
@@ -56,10 +50,12 @@ class GoldFlowHelper(
             bank,
             government,
         )
-        val txCommand = Command(
-            AccountContract.Commands.Store(),
-            listOf(bank.owningKey, government.owningKey)
-        )
+        val signers = setOf(government) + input.signers.mapNotNull {
+            identityService.partyFromName(
+                CordaX500Name.parse(it)
+            )
+        }
+        val txCommand = Command(command, signers.map { it.owningKey }.toList())
 
         return TransactionHelper(
             notaryLookup,
@@ -69,10 +65,10 @@ class GoldFlowHelper(
             jsonMarshallingService,
         ).sign(
             command = txCommand,
-            signers = listOf(government),
-            input = listOfNotNull(existingAccount, testament),
-            output = accountState,
-            contract = AccountContract::class,
+            signers = signers,
+            inputs = listOfNotNull(existingAccount, testament),
+            outputs = listOfNotNull(accountState, testament?.state?.data),
+            contracts = listOf(AccountContract::class, TestamentContract::class),
         )
     }
 }
