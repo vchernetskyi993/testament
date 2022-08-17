@@ -25,6 +25,12 @@ template Testament
         do
           return ()
 
+class Proposal t where
+  getIssuer : t -> Text
+  getInheritors : t -> Map Text Int
+  getProvider : t -> Party
+  getGovernment : t -> Party
+
 
 template IssueProposal
   with
@@ -36,13 +42,9 @@ template IssueProposal
     signatory provider
     observer government
 
-    ensure isNotBlank issuer 
-      && all isNotBlank (M.keys inheritors)
-      && sum (M.values inheritors) == 10000
-      && partyToText provider == "Provider"
-      && partyToText government == "Government"
+    ensure isValidProposal this
 
-    choice Sign : ContractId Testament
+    choice SignIssue : ContractId Testament
       controller government
         do 
           create Testament with 
@@ -53,6 +55,47 @@ template IssueProposal
             observers = []
             announced = False
             executed = False
+
+instance Proposal IssueProposal where
+  getIssuer = issuer
+  getInheritors = inheritors
+  getProvider = provider
+  getGovernment = government
+
+template UpdateProposal
+  with
+    issuer : Text
+    inheritors : Map Text Int
+    provider : Party
+    government : Party
+  where
+    signatory provider
+    observer government
+
+    ensure isValidProposal this
+
+    choice SignUpdate : ContractId Testament
+      controller government
+        do 
+          Some existingId <- lookupByKey @Testament (provider, issuer)
+          existing <- fetch existingId
+          archive existingId
+          create existing with
+            inheritors
+
+instance Proposal UpdateProposal where
+  getIssuer = issuer
+  getInheritors = inheritors
+  getProvider = provider
+  getGovernment = government
+
+
+isValidProposal : Proposal t => t -> Bool
+isValidProposal proposal = isNotBlank (getIssuer proposal)
+  && all isNotBlank (M.keys (getInheritors proposal))
+  && sum (M.values (getInheritors proposal)) == 10000
+  && partyToText (getProvider proposal) == "Provider"
+  && partyToText (getGovernment proposal) == "Government"
 
 
 isNotBlank : Text -> Bool

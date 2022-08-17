@@ -1,0 +1,78 @@
+module Test.Testament.Update where
+
+import Daml.Script
+import DA.Assert
+import DA.Map qualified as M
+import Main.Testament
+import Test.Util
+
+
+should_update = do
+  -- given
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
+  let updatedInheritors = M.fromList [("2", 5000), ("3", 5000)]
+
+  -- when
+  proposal <- submit provider do
+    createCmd UpdateProposal with 
+      issuer = testament.issuer
+      inheritors = M.fromList [("2", 5000), ("3", 5000)]
+      provider
+      government
+
+  updatedId <- submit government do
+    exerciseCmd proposal SignUpdate
+
+  -- then
+  Some (_, actualTestament) <- queryContractKey @Testament provider (provider, testament.issuer)
+
+  assertEq actualTestament testament with inheritors = updatedInheritors
+
+  actualProposal <- queryContractId provider proposal
+
+  assertEq actualProposal None
+
+
+should_validate_on_update = do
+  parties@(TestParties { .. }) <- allocateParties
+
+  performCommonProposalValidations parties $ proposal @UpdateProposal
+
+  -- only provider should issue
+  submitMustFail bank do
+    createCmd $ validProposal bank government
+
+  -- only government should SignIssue
+  submitMustFail provider do
+    createCmd $ validProposal provider bank
+
+
+only_provider_should_update : Script ()
+only_provider_should_update = do
+  -- TODO: test
+  return ()
+
+update_should_differ_from_existing : Script ()
+update_should_differ_from_existing = do
+  -- TODO: test
+  return ()
+
+should_not_update_revoked : Script ()
+should_not_update_revoked = do
+  -- TODO: test
+  return ()
+
+
+should_not_update_announced : Script ()
+should_not_update_announced = do
+  -- TODO: test
+  return ()
+
+instance ProposalFactory UpdateProposal where
+  build issuer inheritors provider government = UpdateProposal with 
+    issuer
+    inheritors
+    provider
+    government
+

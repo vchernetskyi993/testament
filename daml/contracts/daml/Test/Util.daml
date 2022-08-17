@@ -1,0 +1,117 @@
+module Test.Util where
+
+import Daml.Script
+import DA.Map (Map)
+import DA.Map qualified as M
+import DA.Optional
+import Main.Testament
+
+data TestParties = TestParties 
+  with 
+    provider : Party
+    government : Party
+    bank : Party
+  deriving (Show)
+
+
+allocateParties : Script TestParties
+allocateParties = do
+  provider <- allocateParty "Provider"
+  government <- allocateParty "Government"
+  bank <- allocateParty "Bank"
+
+  return $ TestParties with 
+    provider
+    government
+    bank
+
+
+issueTestament provider government = do
+  issueProposal <- submit provider do
+    createCmd $ validProposal provider government
+  
+  testamentId <- submit government do
+    exerciseCmd issueProposal SignIssue
+
+  Some testament <- queryContractId provider testamentId
+
+  return testament
+
+validProposal : Party -> Party -> IssueProposal
+validProposal = proposal None None
+
+performCommonProposalValidations : 
+  (Template t) => 
+  TestParties 
+    -> (Optional Text 
+      -> Optional [(Text, Int)] 
+      -> Party 
+      -> Party 
+      -> t) 
+    -> Script ()
+performCommonProposalValidations parties proposal = do
+  let 
+    TestParties { .. } = parties
+
+  -- empty issuer
+  submitMustFail provider do
+    createCmd $ proposal (Some "") None provider government
+
+   -- blank issuer
+  submitMustFail provider do
+    createCmd $ proposal (Some "   ") None provider government
+
+  -- empty inheritor
+  submitMustFail provider do
+    createCmd $ proposal None (Some [("", 4000), ("3", 6000)]) provider government
+
+  -- blank inheritor
+  submitMustFail provider do
+    createCmd $ proposal None (Some [("2", 4000), ("  ", 6000)]) provider government
+
+  -- shares > 10000
+  submitMustFail provider do
+    createCmd $ proposal None (Some [("2", 4000), ("3", 6111)]) provider government
+
+  -- shares < 10000
+  submitMustFail provider do
+    createCmd $ proposal None (Some [("2", 3000), ("3", 6000)]) provider government
+
+  -- inheritors not empty
+  submitMustFail provider do
+    createCmd $ proposal None (Some []) provider government
+
+
+validIssuer = "1"
+
+validInheritors = [("2", 4000), ("3", 6000)]
+
+class ProposalFactory t where
+  build : Text -> Map Text Int -> Party -> Party -> t
+
+instance ProposalFactory IssueProposal where
+  build issuer inheritors provider government = IssueProposal with 
+      issuer
+      inheritors
+      provider
+      government
+
+proposal : 
+  ProposalFactory t => 
+    Optional Text 
+    -> Optional [(Text, Int)] 
+    -> Party 
+    -> Party 
+    -> t
+proposal issuerOpt inheritorsOpt provider government = 
+  let 
+    issuer = fromOptional validIssuer issuerOpt
+    inheritors = M.fromList $ fromOptional 
+      validInheritors
+      inheritorsOpt
+  in
+    build 
+      issuer
+      inheritors
+      provider
+      government
