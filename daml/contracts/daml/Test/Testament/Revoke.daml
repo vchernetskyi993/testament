@@ -1,0 +1,26 @@
+module Test.Testament.Revoke where
+
+import Daml.Script
+
+should_revoke : Script ()
+should_revoke = do
+  -- TODO: test
+  return ()
+
+
+only_provider_should_revoke : Script ()
+only_provider_should_revoke = do
+  -- TODO: test
+  return ()
+
+
+should_not_revoke_revoked : Script ()
+should_not_revoke_revoked = do
+  -- TODO: test
+  return ()
+
+
+should_not_revoke_announced : Script ()
+should_not_revoke_announced = do
+  -- TODO: test
+  return ()

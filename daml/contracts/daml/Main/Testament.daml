@@ -1,0 +1,59 @@
+module Main.Testament where
+
+import DA.Map (Map)
+import DA.Map qualified as M
+import DA.Text qualified as T
+
+template Testament 
+  with
+    issuer : Text
+    inheritors : Map Text Int
+    updater : Party
+    signer : Party
+    observers : [Party]
+    announced : Bool
+    executed : Bool
+  where
+    signatory updater, signer
+    observer observers
+
+    key (updater, issuer) : (Party, Text)
+    maintainer key._1
+
+    choice Revoke : () with
+     controller updater
+        do
+          return ()
+
+
+template IssueProposal
+  with
+    issuer : Text
+    inheritors : Map Text Int
+    provider : Party
+    government : Party
+  where
+    signatory provider
+    observer government
+
+    ensure isNotBlank issuer 
+      && all isNotBlank (M.keys inheritors)
+      && sum (M.values inheritors) == 10000
+      && partyToText provider == "Provider"
+      && partyToText government == "Government"
+
+    choice Sign : ContractId Testament
+      controller government
+        do 
+          create Testament with 
+            issuer
+            inheritors
+            updater = provider
+            signer = government
+            observers = []
+            announced = False
+            executed = False
+
+
+isNotBlank : Text -> Bool
+isNotBlank = not . T.isEmpty . T.trim

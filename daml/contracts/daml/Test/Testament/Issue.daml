@@ -1,0 +1,163 @@
+module Test.Testament.Issue where
+
+import Daml.Script
+import Main.Testament
+import DA.Assert
+import DA.Map qualified as M
+import DA.Optional
+
+
+should_issue_testament = do
+  -- given
+  TestParties { provider, government } <- allocateParties
+
+  -- when
+  issueProposal <- submit provider do
+    createCmd $ validProposal provider government
+  
+  testament <- submit government do
+    exerciseCmd issueProposal Sign
+
+  -- then
+  Some actualTestament <- queryContractId government testament
+  
+  assertEq actualTestament $ Testament with 
+    issuer = validIssuer
+    inheritors = M.fromList validInheritors
+    updater = provider
+    signer = government
+    observers = []
+    announced = False
+    executed = False
+
+  actualProposal <- queryContractId government issueProposal
+
+  assertEq actualProposal None
+
+
+should_validate_proposal = do
+  TestParties { .. } <- allocateParties
+
+  -- empty issuer
+  submitMustFail provider do
+    createCmd $ proposal (Some "") None provider government
+
+   -- blank issuer
+  submitMustFail provider do
+    createCmd $ proposal (Some "   ") None provider government
+
+  -- empty inheritor
+  submitMustFail provider do
+    createCmd $ proposal None (Some [("", 4000), ("3", 6000)]) provider government
+
+  -- blank inheritor
+  submitMustFail provider do
+    createCmd $ proposal None (Some [("2", 4000), ("  ", 6000)]) provider government
+
+  -- shares > 10000
+  submitMustFail provider do
+    createCmd $ proposal None (Some [("2", 4000), ("3", 6111)]) provider government
+
+  -- shares < 10000
+  submitMustFail provider do
+    createCmd $ proposal None (Some [("2", 3000), ("3", 6000)]) provider government
+
+  -- inheritors not empty
+  submitMustFail provider do
+    createCmd $ proposal None (Some []) provider government
+
+  -- only provider should issue
+  submitMustFail bank do
+    createCmd $ validProposal bank government
+
+  -- only government should sign
+  submitMustFail provider do
+    createCmd $ validProposal provider bank
+
+
+should_not_issue_twice = do
+  TestParties { provider, government } <- allocateParties
+
+  initialProposal <- submit provider do
+    createCmd $ validProposal provider government
+  
+  testament <- submit government do
+    exerciseCmd initialProposal Sign
+
+  -- issue same proposal twice
+  submitMustFail government do
+    exerciseCmd initialProposal Sign
+
+  duplicateProposal <- submit provider do
+    createCmd $ validProposal provider government
+
+  -- issue same testament twice
+  submitMustFail government do
+    exerciseCmd duplicateProposal Sign
+
+
+should_issue_after_revoke = do
+  TestParties { provider, government } <- allocateParties
+
+  initialProposal <- submit provider do
+    createCmd $ validProposal provider government
+  
+  testament <- submit government do
+    exerciseCmd initialProposal Sign
+
+  -- issue same proposal twice
+  submitMustFail government do
+    exerciseCmd initialProposal Sign
+
+  duplicateProposal <- submit provider do
+    createCmd $ validProposal provider government
+
+  -- issue same testament twice
+  submitMustFail government do
+    exerciseCmd duplicateProposal Sign
+
+
+data TestParties = TestParties 
+  with 
+    provider : Party
+    government : Party
+    bank : Party
+  deriving (Show)
+
+-- allocateParties : Script Parties
+allocateParties = do
+  provider <- allocateParty "Provider"
+  government <- allocateParty "Government"
+  bank <- allocateParty "Bank"
+
+  return $ TestParties with 
+    provider
+    government
+    bank
+
+
+validProposal : Party -> Party -> IssueProposal
+validProposal = proposal None None
+
+proposal : 
+  Optional Text 
+    -> Optional [(Text, Int)] 
+    -> Party 
+    -> Party 
+    -> IssueProposal
+proposal issuerOpt inheritorsOpt provider government = 
+  let 
+    issuer = fromOptional validIssuer issuerOpt
+    inheritors = M.fromList $ fromOptional 
+      validInheritors
+      inheritorsOpt
+  in
+    IssueProposal with 
+      issuer
+      inheritors
+      provider
+      government
+
+validIssuer = "1"
+
+validInheritors = [("2", 4000), ("3", 6000)]
