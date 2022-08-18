@@ -1,9 +1,19 @@
-module Test.Util where
+module Test.Util (
+  allocateParties, 
+  issueProposal,
+  issueTestament, 
+  TestParties(..), 
+  shouldValidateInheritors, 
+  validInheritors, 
+  validIssuer, 
+  validProposal,
+  validTestament
+) where
 
-import Daml.Script
-import DA.Foldable
+import Daml.Script (allocateParty, createCmd, Commands, exerciseCmd, Script)
+import DA.Foldable (forA_)
 import DA.Map qualified as M
-import DA.Optional
+import DA.Optional (fromOptional)
 import Main.Testament
 
 data TestParties = TestParties 
@@ -28,38 +38,18 @@ allocateParties = do
 
 issueTestament : Party -> Party -> Script (ContractId Testament)
 issueTestament provider government = do 
-  issueProposal <- submit provider do 
+  proposal <- submit provider do 
     createCmd $ validProposal provider government
 
   submit government do 
-    exerciseCmd issueProposal SignIssue
+    exerciseCmd proposal SignIssue
 
 
 validProposal : Party -> Party -> IssueProposal
 validProposal = issueProposal None None
 
 
-performCommonProposalValidations : 
-  (Template t) => 
-    TestParties 
-    -> (Optional Text -> Optional [(Text, Int)] -> Party -> Party -> t) 
-    -> Script ()
-performCommonProposalValidations parties issueProposal = do
-  let 
-    TestParties { .. } = parties
-
-  -- empty issuer
-  submitMustFail provider do
-    createCmd $ issueProposal (Some "") None provider government
-
-   -- blank issuer
-  submitMustFail provider do
-    createCmd $ issueProposal (Some "   ") None provider government
-
-  shouldValidateInheritors provider \inheritors -> do
-      createCmd $ issueProposal None (Some inheritors) provider government
-
-
+shouldValidateInheritors : Party -> ([(Text, Int)] -> Commands a) -> Script ()
 shouldValidateInheritors party action = do
   forA_ invalidInheritors $ \inheritors -> do
     submitMustFail party (action inheritors)
@@ -82,6 +72,7 @@ validInheritors : [(Text, Int)]
 validInheritors = [("2", 4000), ("3", 6000)]
 
 
+validTestament : Party -> Party -> Testament
 validTestament provider government = Testament with 
   issuer = validIssuer
   inheritors = M.fromList validInheritors

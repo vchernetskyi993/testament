@@ -1,4 +1,10 @@
-module Main.Testament where
+module Main.Testament (
+  Testament(..), 
+  IssueProposal(..), 
+  SignIssue(..), 
+  UpdateInheritors(..),
+  Revoke(..),
+) where
 
 import DA.Map (Map)
 import DA.Map qualified as M

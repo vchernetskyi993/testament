@@ -10,3 +10,8 @@ dependencies:
   - daml-prim
   - daml-stdlib
   - daml-script
+build-options: 
+  ["--ghc-option", "-Weverything",
+   "--ghc-option", "-Wno-missing-deriving-strategies",
+   "--ghc-option", "-Wno-unsafe",
+   "--ghc-option", "-Wno-implicit-prelude"]

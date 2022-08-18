@@ -1,34 +1,46 @@
-module Test.Testament.Issue where
+module Test.Testament.Issue () where
 
-import Daml.Script
-import Main.Testament
-import DA.Assert
-import Test.Util
+import Daml.Script (createCmd, exerciseCmd, queryContractId, Script)
+import Main.Testament (SignIssue(SignIssue))
+import DA.Assert (assertEq)
+import Test.Util ( 
+  allocateParties, 
+  bank,
+  government,
+  issueProposal, 
+  provider,
+  shouldValidateInheritors, 
+  TestParties(TestParties),
+  validProposal, 
+  validTestament
+ )
 
 
-should_issue_testament = do
+_should_issue_testament : Script ()
+_should_issue_testament = do
   -- given
-  TestParties { provider, government } <- allocateParties
+  TestParties { .. } <- allocateParties
 
   -- when
-  issueProposal <- submit provider do
+  proposal <- submit provider do
     createCmd $ validProposal provider government
   
   testament <- submit government do
-    exerciseCmd issueProposal SignIssue
+    exerciseCmd proposal SignIssue
 
   -- then
   Some actualTestament <- queryContractId government testament
   
   assertEq actualTestament $ validTestament provider government
 
-  actualProposal <- queryContractId government issueProposal
+  actualProposal <- queryContractId government proposal
 
   assertEq actualProposal None
 
 
-should_validate_proposal = do
-  parties@(TestParties { .. }) <- allocateParties
+_should_validate_proposal : Script ()
+_should_validate_proposal = do
+  TestParties { .. } <- allocateParties
 
   -- empty issuer
   submitMustFail provider do
@@ -50,13 +62,14 @@ should_validate_proposal = do
     createCmd $ validProposal provider bank
 
 
-should_not_issue_twice = do
-  TestParties { provider, government } <- allocateParties
+_should_not_issue_twice : Script ()
+_should_not_issue_twice = do
+  TestParties { .. } <- allocateParties
 
   initialProposal <- submit provider do
     createCmd $ validProposal provider government
   
-  testament <- submit government do
+  _ <- submit government do
     exerciseCmd initialProposal SignIssue
 
   -- issue same issueProposal twice
@@ -71,13 +84,14 @@ should_not_issue_twice = do
     exerciseCmd duplicateProposal SignIssue
 
 
-should_issue_after_revoke = do
-  TestParties { provider, government } <- allocateParties
+_should_issue_after_revoke : Script ()
+_should_issue_after_revoke = do
+  TestParties { .. } <- allocateParties
 
   initialProposal <- submit provider do
     createCmd $ validProposal provider government
   
-  testament <- submit government do
+  _ <- submit government do
     exerciseCmd initialProposal SignIssue
 
   -- issue same issueProposal twice
