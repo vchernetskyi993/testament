@@ -14,7 +14,11 @@ import Daml.Script (allocateParty, createCmd, Commands, exerciseCmd, Script)
 import DA.Foldable (forA_)
 import DA.Map qualified as M
 import DA.Optional (fromOptional)
-import Main.Testament
+import Main.Testament (
+  IssueProposal(IssueProposal, inheritors, issuer, provider, government), 
+  SignIssue(SignIssue), 
+  Testament(announced, executed, government, inheritors, issuer, observers, provider, Testament)
+ )
 
 data TestParties = TestParties 
   with 
