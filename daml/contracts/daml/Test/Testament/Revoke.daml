@@ -1,23 +1,54 @@
 module Test.Testament.Revoke () where
 
-import Daml.Script (Script)
+import Daml.Script (exerciseCmd, queryContractKey, Script)
+import DA.Assert (assertEq)
+import Main.Testament (Revoke(Revoke), Testament)
+import Test.Util (
+  allocateParties, 
+  government, 
+  issueTestament, 
+  provider, 
+  TestParties(TestParties),
+  validIssuer
+ )
+
 
 _should_revoke : Script ()
 _should_revoke = do
-  -- TODO: test
-  return ()
+  -- given
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
+
+  -- when
+  submit provider do
+    exerciseCmd testament Revoke
+
+  -- then
+  actualTestament <- queryContractKey 
+    @Testament provider (provider, validIssuer)
+
+  assertEq actualTestament None
 
 
 _only_provider_should_revoke : Script ()
 _only_provider_should_revoke = do
-  -- TODO: test
-  return ()
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
+
+  submitMustFail government do
+    exerciseCmd testament Revoke
 
 
 _should_not_revoke_revoked : Script ()
 _should_not_revoke_revoked = do
-  -- TODO: test
-  return ()
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
+
+  submit provider do
+    exerciseCmd testament Revoke
+
+  submitMustFail provider do
+    exerciseCmd testament Revoke
 
 
 _should_not_revoke_announced : Script ()
