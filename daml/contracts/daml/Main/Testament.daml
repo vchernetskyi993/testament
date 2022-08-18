@@ -4,6 +4,7 @@ module Main.Testament (
   SignIssue(..), 
   UpdateInheritors(..),
   Revoke(..),
+  AnnounceExecution(..),
 ) where
 
 import DA.Map (Map)
@@ -36,6 +37,8 @@ template Testament
           assertMsg "Inheritors should differ from existing" $ 
             updatedInheritors /= inheritors
 
+          assertNotAnnounced this
+
           archive self
           create this with
             inheritors = updatedInheritors
@@ -44,7 +47,20 @@ template Testament
     choice Revoke : () with
      controller provider
         do
+          assertNotAnnounced this
+
           return ()
+
+    nonconsuming choice AnnounceExecution : ContractId Testament with
+      bank : Party
+     controller government
+        do
+          assertNotAnnounced this
+
+          archive self
+          create this with
+            announced = True
+            observers = [bank]
 
 
 template IssueProposal
@@ -73,6 +89,10 @@ template IssueProposal
             observers = []
             announced = False
             executed = False
+
+assertNotAnnounced : Testament -> Update () 
+assertNotAnnounced testament = do
+  assertMsg "Execution should not be announced" $ not testament.announced
 
 
 validateInheritors : Map Text Int -> Bool

@@ -4,12 +4,13 @@ import Daml.Script (exerciseCmd, queryContractKey, Script)
 import DA.Assert (assertEq)
 import DA.Map qualified as M
 import Main.Testament (
+  AnnounceExecution(AnnounceExecution, bank),  
   Revoke(Revoke), 
   Testament, 
-  updatedInheritors, 
-  UpdateInheritors(UpdateInheritors)
+  UpdateInheritors(updatedInheritors, UpdateInheritors),
  )
 import Test.Util (
+  bank,
   allocateParties, 
   government, 
   issueTestament, 
@@ -18,7 +19,7 @@ import Test.Util (
   TestParties(TestParties), 
   validInheritors,
   validIssuer, 
-  validTestament
+  validTestament,
  )
 
 
@@ -49,9 +50,11 @@ _should_update = do
 
 _should_validate_on_update : Script ()
 _should_validate_on_update = do
+  -- given
   TestParties { .. } <- allocateParties
   testament <- issueTestament provider government
 
+  -- when+then
   shouldValidateInheritors provider \inheritors -> do
     exerciseCmd testament UpdateInheritors with 
       updatedInheritors = M.fromList inheritors
@@ -59,9 +62,11 @@ _should_validate_on_update = do
 
 _only_provider_should_update : Script ()
 _only_provider_should_update = do
+  -- given
   TestParties { .. } <- allocateParties
   testament <- issueTestament provider government
 
+  -- when+then
   submitMustFail government do
     exerciseCmd testament UpdateInheritors with 
       updatedInheritors = updatedInheritorsValue
@@ -69,20 +74,24 @@ _only_provider_should_update = do
 
 _update_should_differ_from_existing : Script ()
 _update_should_differ_from_existing = do
+  -- given
   TestParties { .. } <- allocateParties
   testament <- issueTestament provider government
 
+  -- when+then
   submitMustFail provider do
     exerciseCmd testament UpdateInheritors with 
       updatedInheritors = M.fromList validInheritors
 
 _should_not_update_revoked : Script ()
 _should_not_update_revoked = do
+  -- given
   TestParties { .. } <- allocateParties
   testament <- issueTestament provider government
   submit provider do
     exerciseCmd testament Revoke
 
+  -- when+then
   submitMustFail provider do
     exerciseCmd testament UpdateInheritors with 
       updatedInheritors = updatedInheritorsValue
@@ -90,6 +99,15 @@ _should_not_update_revoked = do
 
 _should_not_update_announced : Script ()
 _should_not_update_announced = do
-  -- TODO: test
-  return ()
+  -- given
+  TestParties{ .. } <- allocateParties
+  testament <- issueTestament provider government
 
+  announced <- submit government do
+    exerciseCmd testament AnnounceExecution with 
+      bank
+
+  -- when+then
+  submitMustFail provider do
+    exerciseCmd announced UpdateInheritors with 
+      updatedInheritors = updatedInheritorsValue

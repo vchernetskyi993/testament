@@ -12,7 +12,7 @@ import Test.Util (
   shouldValidateInheritors, 
   TestParties(TestParties),
   validProposal, 
-  validTestament
+  validTestament,
  )
 
 
@@ -40,6 +40,7 @@ _should_issue_testament = do
 
 _should_validate_proposal : Script ()
 _should_validate_proposal = do
+  -- given
   TestParties { .. } <- allocateParties
 
   -- empty issuer
@@ -64,6 +65,7 @@ _should_validate_proposal = do
 
 _should_not_issue_twice : Script ()
 _should_not_issue_twice = do
+  -- given
   TestParties { .. } <- allocateParties
 
   initialProposal <- submit provider do
@@ -86,6 +88,7 @@ _should_not_issue_twice = do
 
 _should_issue_after_revoke : Script ()
 _should_issue_after_revoke = do
+  -- given
   TestParties { .. } <- allocateParties
 
   initialProposal <- submit provider do

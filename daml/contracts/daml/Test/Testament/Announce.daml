@@ -1,0 +1,84 @@
+module Test.Testament.Announce () where
+
+import Daml.Script (exerciseCmd, queryContractKey, Script)
+import DA.Assert (assertEq)
+import Main.Testament (
+  AnnounceExecution(AnnounceExecution, bank), 
+  Revoke(Revoke), 
+  Testament,
+ )
+import Test.Util (
+  allocateParties, 
+  bank, 
+  government, 
+  issueTestament, 
+  provider, 
+  TestParties(TestParties), 
+  validIssuer, 
+  validTestament,
+ )
+
+
+_should_announce : Script ()
+_should_announce = do
+  -- given
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
+
+  -- when
+  _ <- submit government do
+    exerciseCmd testament AnnounceExecution with 
+      bank
+
+  -- then
+  Some (_, actualTestament) <- queryContractKey 
+    @Testament provider (provider, validIssuer)
+
+  assertEq 
+    actualTestament 
+    (validTestament provider government) with 
+      announced = True
+      observers = [bank]
+
+
+_only_government_should_announce : Script ()
+_only_government_should_announce = do
+  -- given
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
+
+  -- when+then
+  submitMustFail provider do
+    exerciseCmd testament AnnounceExecution with 
+      bank
+
+
+_should_not_announce_announced : Script ()
+_should_not_announce_announced = do
+  -- given
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
+
+  announced <- submit government do
+    exerciseCmd testament AnnounceExecution with 
+      bank
+
+  -- when+then
+  submitMustFail government do
+    exerciseCmd announced AnnounceExecution with 
+      bank
+
+
+_should_not_announce_revoked : Script ()
+_should_not_announce_revoked = do
+  -- given
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
+
+  submit provider do
+    exerciseCmd testament Revoke
+
+  -- when+then
+  submitMustFail government do
+    exerciseCmd testament AnnounceExecution with 
+      bank
