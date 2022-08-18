@@ -1,7 +1,7 @@
 module Test.Util where
 
 import Daml.Script
-import DA.Map (Map)
+import DA.Foldable
 import DA.Map qualified as M
 import DA.Optional
 import Main.Testament
@@ -26,91 +26,81 @@ allocateParties = do
     bank
 
 
-issueTestament provider government = do
-  issueProposal <- submit provider do
+issueTestament : Party -> Party -> Script (ContractId Testament)
+issueTestament provider government = do 
+  issueProposal <- submit provider do 
     createCmd $ validProposal provider government
-  
-  testamentId <- submit government do
+
+  submit government do 
     exerciseCmd issueProposal SignIssue
 
-  Some testament <- queryContractId provider testamentId
-
-  return testament
 
 validProposal : Party -> Party -> IssueProposal
-validProposal = proposal None None
+validProposal = issueProposal None None
+
 
 performCommonProposalValidations : 
   (Template t) => 
-  TestParties 
-    -> (Optional Text 
-      -> Optional [(Text, Int)] 
-      -> Party 
-      -> Party 
-      -> t) 
+    TestParties 
+    -> (Optional Text -> Optional [(Text, Int)] -> Party -> Party -> t) 
     -> Script ()
-performCommonProposalValidations parties proposal = do
+performCommonProposalValidations parties issueProposal = do
   let 
     TestParties { .. } = parties
 
   -- empty issuer
   submitMustFail provider do
-    createCmd $ proposal (Some "") None provider government
+    createCmd $ issueProposal (Some "") None provider government
 
    -- blank issuer
   submitMustFail provider do
-    createCmd $ proposal (Some "   ") None provider government
+    createCmd $ issueProposal (Some "   ") None provider government
 
-  -- empty inheritor
-  submitMustFail provider do
-    createCmd $ proposal None (Some [("", 4000), ("3", 6000)]) provider government
-
-  -- blank inheritor
-  submitMustFail provider do
-    createCmd $ proposal None (Some [("2", 4000), ("  ", 6000)]) provider government
-
-  -- shares > 10000
-  submitMustFail provider do
-    createCmd $ proposal None (Some [("2", 4000), ("3", 6111)]) provider government
-
-  -- shares < 10000
-  submitMustFail provider do
-    createCmd $ proposal None (Some [("2", 3000), ("3", 6000)]) provider government
-
-  -- inheritors not empty
-  submitMustFail provider do
-    createCmd $ proposal None (Some []) provider government
+  shouldValidateInheritors provider \inheritors -> do
+      createCmd $ issueProposal None (Some inheritors) provider government
 
 
+shouldValidateInheritors party action = do
+  forA_ invalidInheritors $ \inheritors -> do
+    submitMustFail party (action inheritors)
+
+
+invalidInheritors : [[(Text, Int)]]
+invalidInheritors = 
+  [[("", 4000), ("3", 6000)], -- empty inheritor
+   [("2", 4000), ("  ", 6000)], -- blank inheritor
+   [("2", 4000), ("3", 6111)], -- shares > 10000
+   [("2", 3000), ("3", 6000)], -- shares < 10000
+   []] -- inheritors empty
+
+
+validIssuer : Text
 validIssuer = "1"
 
+
+validInheritors : [(Text, Int)]
 validInheritors = [("2", 4000), ("3", 6000)]
 
-class ProposalFactory t where
-  build : Text -> Map Text Int -> Party -> Party -> t
 
-instance ProposalFactory IssueProposal where
-  build issuer inheritors provider government = IssueProposal with 
-      issuer
-      inheritors
-      provider
-      government
+validTestament provider government = Testament with 
+  issuer = validIssuer
+  inheritors = M.fromList validInheritors
+  provider
+  government
+  observers = []
+  announced = False
+  executed = False
 
-proposal : 
-  ProposalFactory t => 
-    Optional Text 
-    -> Optional [(Text, Int)] 
-    -> Party 
-    -> Party 
-    -> t
-proposal issuerOpt inheritorsOpt provider government = 
+
+issueProposal : Optional Text -> Optional [(Text, Int)] -> Party -> Party -> IssueProposal
+issueProposal issuerOpt inheritorsOpt provider government = 
   let 
     issuer = fromOptional validIssuer issuerOpt
     inheritors = M.fromList $ fromOptional 
       validInheritors
       inheritorsOpt
   in
-    build 
+    IssueProposal with 
       issuer
       inheritors
       provider

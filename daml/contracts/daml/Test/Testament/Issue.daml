@@ -3,7 +3,6 @@ module Test.Testament.Issue where
 import Daml.Script
 import Main.Testament
 import DA.Assert
-import DA.Map qualified as M
 import Test.Util
 
 
@@ -21,14 +20,7 @@ should_issue_testament = do
   -- then
   Some actualTestament <- queryContractId government testament
   
-  assertEq actualTestament $ Testament with 
-    issuer = validIssuer
-    inheritors = M.fromList validInheritors
-    updater = provider
-    signer = government
-    observers = []
-    announced = False
-    executed = False
+  assertEq actualTestament $ validTestament provider government
 
   actualProposal <- queryContractId government issueProposal
 
@@ -38,9 +30,17 @@ should_issue_testament = do
 should_validate_proposal = do
   parties@(TestParties { .. }) <- allocateParties
 
-  performCommonProposalValidations parties $ proposal @IssueProposal
+  -- empty issuer
+  submitMustFail provider do
+    createCmd $ issueProposal (Some "") None provider government
 
-  -- TODO: unify these two submits as well
+   -- blank issuer
+  submitMustFail provider do
+    createCmd $ issueProposal (Some "   ") None provider government
+
+  shouldValidateInheritors provider \inheritors -> do
+    createCmd $ issueProposal None (Some inheritors) provider government
+
   -- only provider should issue
   submitMustFail bank do
     createCmd $ validProposal bank government

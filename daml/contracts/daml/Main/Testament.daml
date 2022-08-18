@@ -8,28 +8,37 @@ template Testament
   with
     issuer : Text
     inheritors : Map Text Int
-    updater : Party
-    signer : Party
+    provider : Party
+    government : Party
     observers : [Party]
     announced : Bool
     executed : Bool
   where
-    signatory updater, signer
+    signatory provider, government
     observer observers
 
-    key (updater, issuer) : (Party, Text)
+    key (provider, issuer) : (Party, Text)
     maintainer key._1
 
+    nonconsuming choice UpdateInheritors : ContractId Testament with
+      updatedInheritors : Map Text Int
+     controller provider
+        do
+          assertMsg "Inheritors are not valid" $ 
+            validateInheritors updatedInheritors
+
+          assertMsg "Inheritors should differ from existing" $ 
+            updatedInheritors /= inheritors
+
+          archive self
+          create this with
+            inheritors = updatedInheritors
+
+
     choice Revoke : () with
-     controller updater
+     controller provider
         do
           return ()
-
-class Proposal t where
-  getIssuer : t -> Text
-  getInheritors : t -> Map Text Int
-  getProvider : t -> Party
-  getGovernment : t -> Party
 
 
 template IssueProposal
@@ -42,7 +51,10 @@ template IssueProposal
     signatory provider
     observer government
 
-    ensure isValidProposal this
+    ensure isNotBlank issuer
+      && validateInheritors inheritors
+      && partyToText provider == "Provider"
+      && partyToText government == "Government"
 
     choice SignIssue : ContractId Testament
       controller government
@@ -50,52 +62,17 @@ template IssueProposal
           create Testament with 
             issuer
             inheritors
-            updater = provider
-            signer = government
+            provider = provider
+            government = government
             observers = []
             announced = False
             executed = False
 
-instance Proposal IssueProposal where
-  getIssuer = issuer
-  getInheritors = inheritors
-  getProvider = provider
-  getGovernment = government
 
-template UpdateProposal
-  with
-    issuer : Text
-    inheritors : Map Text Int
-    provider : Party
-    government : Party
-  where
-    signatory provider
-    observer government
-
-    ensure isValidProposal this
-
-    choice SignUpdate : ContractId Testament
-      controller government
-        do 
-          Some existingId <- lookupByKey @Testament (provider, issuer)
-          existing <- fetch existingId
-          archive existingId
-          create existing with
-            inheritors
-
-instance Proposal UpdateProposal where
-  getIssuer = issuer
-  getInheritors = inheritors
-  getProvider = provider
-  getGovernment = government
-
-
-isValidProposal : Proposal t => t -> Bool
-isValidProposal proposal = isNotBlank (getIssuer proposal)
-  && all isNotBlank (M.keys (getInheritors proposal))
-  && sum (M.values (getInheritors proposal)) == 10000
-  && partyToText (getProvider proposal) == "Provider"
-  && partyToText (getGovernment proposal) == "Government"
+validateInheritors : Map Text Int -> Bool
+validateInheritors inheritors = 
+  all isNotBlank (M.keys inheritors)
+  && sum (M.values inheritors) == 10000
 
 
 isNotBlank : Text -> Bool

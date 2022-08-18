@@ -7,72 +7,68 @@ import Main.Testament
 import Test.Util
 
 
+updatedInheritorsValue = M.fromList [("2", 5000), ("3", 5000)]
+
 should_update = do
   -- given
   TestParties { .. } <- allocateParties
   testament <- issueTestament provider government
-  let updatedInheritors = M.fromList [("2", 5000), ("3", 5000)]
 
   -- when
-  proposal <- submit provider do
-    createCmd UpdateProposal with 
-      issuer = testament.issuer
-      inheritors = M.fromList [("2", 5000), ("3", 5000)]
-      provider
-      government
-
-  updatedId <- submit government do
-    exerciseCmd proposal SignUpdate
+  testament <- submit provider do
+    exerciseCmd testament UpdateInheritors with 
+      updatedInheritors = updatedInheritorsValue
 
   -- then
-  Some (_, actualTestament) <- queryContractKey @Testament provider (provider, testament.issuer)
+  Some (_, actualTestament) <- queryContractKey 
+    @Testament provider (provider, validIssuer)
 
-  assertEq actualTestament testament with inheritors = updatedInheritors
-
-  actualProposal <- queryContractId provider proposal
-
-  assertEq actualProposal None
+  assertEq 
+    actualTestament 
+    (validTestament provider government) with 
+      inheritors = updatedInheritorsValue
 
 
 should_validate_on_update = do
-  parties@(TestParties { .. }) <- allocateParties
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
 
-  performCommonProposalValidations parties $ proposal @UpdateProposal
-
-  -- only provider should issue
-  submitMustFail bank do
-    createCmd $ validProposal bank government
-
-  -- only government should SignIssue
-  submitMustFail provider do
-    createCmd $ validProposal provider bank
+  shouldValidateInheritors provider \inheritors -> do
+    exerciseCmd testament UpdateInheritors with 
+      updatedInheritors = M.fromList inheritors
 
 
-only_provider_should_update : Script ()
 only_provider_should_update = do
-  -- TODO: test
-  return ()
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
 
-update_should_differ_from_existing : Script ()
+  submitMustFail government do
+    exerciseCmd testament UpdateInheritors with 
+      updatedInheritors = updatedInheritorsValue
+
+
 update_should_differ_from_existing = do
-  -- TODO: test
-  return ()
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
+
+  submitMustFail provider do
+    exerciseCmd testament UpdateInheritors with 
+      updatedInheritors = M.fromList validInheritors
 
 should_not_update_revoked : Script ()
 should_not_update_revoked = do
-  -- TODO: test
-  return ()
+  TestParties { .. } <- allocateParties
+  testament <- issueTestament provider government
+  submit provider do
+    exerciseCmd testament Revoke
+
+  submitMustFail provider do
+    exerciseCmd testament UpdateInheritors with 
+      updatedInheritors = updatedInheritorsValue
 
 
 should_not_update_announced : Script ()
 should_not_update_announced = do
   -- TODO: test
   return ()
-
-instance ProposalFactory UpdateProposal where
-  build issuer inheritors provider government = UpdateProposal with 
-    issuer
-    inheritors
-    provider
-    government
 
