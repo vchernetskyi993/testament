@@ -1,0 +1,31 @@
+module Test.Account.Util (
+  createAccount,
+  validAccount,
+) where
+
+import Daml.Script (createCmd, exerciseCmd, Script)
+import Main.Account (
+  Account(Account, amount, bank, government, holder),
+  CreateAccount(bank, CreateAccount, government, holder), 
+  SignAccountCreation(SignAccountCreation),
+ )
+
+
+createAccount : Party -> Party -> Script (ContractId Account)
+createAccount bank government = do
+  proposal <- submit bank do
+    createCmd $ CreateAccount with 
+      holder = "1"
+      bank
+      government
+
+  submit government do
+    exerciseCmd proposal SignAccountCreation
+
+
+validAccount : Party -> Party -> Account
+validAccount bank government = Account with 
+  holder = "1"
+  amount = 0
+  bank
+  government

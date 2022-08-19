@@ -1,23 +1,22 @@
 module Test.Util (
   allocateParties, 
+  announceTestament,
   issueProposal,
   issueTestament, 
   TestParties(..), 
-  shouldValidateInheritors, 
   validInheritors, 
   validIssuer, 
   validProposal,
-  validTestament
 ) where
 
-import Daml.Script (allocateParty, createCmd, Commands, exerciseCmd, Script)
-import DA.Foldable (forA_)
+import Daml.Script (allocateParty, createCmd, exerciseCmd, Script)
 import DA.Map qualified as M
 import DA.Optional (fromOptional)
 import Main.Testament (
   IssueProposal(IssueProposal, inheritors, issuer, provider, government), 
   SignIssue(SignIssue), 
-  Testament(announced, executed, government, inheritors, issuer, observers, provider, Testament)
+  Testament,
+  AnnounceExecution(AnnounceExecution, bank),
  )
 
 data TestParties = TestParties 
@@ -53,38 +52,12 @@ validProposal : Party -> Party -> IssueProposal
 validProposal = issueProposal None None
 
 
-shouldValidateInheritors : Party -> ([(Text, Int)] -> Commands a) -> Script ()
-shouldValidateInheritors party action = do
-  forA_ invalidInheritors $ \inheritors -> do
-    submitMustFail party (action inheritors)
-
-
-invalidInheritors : [[(Text, Int)]]
-invalidInheritors = 
-  [[("", 4000), ("3", 6000)], -- empty inheritor
-   [("2", 4000), ("  ", 6000)], -- blank inheritor
-   [("2", 4000), ("3", 6111)], -- shares > 10000
-   [("2", 3000), ("3", 6000)], -- shares < 10000
-   []] -- inheritors empty
-
-
 validIssuer : Text
 validIssuer = "1"
 
 
 validInheritors : [(Text, Int)]
 validInheritors = [("2", 4000), ("3", 6000)]
-
-
-validTestament : Party -> Party -> Testament
-validTestament provider government = Testament with 
-  issuer = validIssuer
-  inheritors = M.fromList validInheritors
-  provider
-  government
-  observers = []
-  announced = False
-  executed = False
 
 
 issueProposal : Optional Text -> Optional [(Text, Int)] -> Party -> Party -> IssueProposal
@@ -100,3 +73,12 @@ issueProposal issuerOpt inheritorsOpt provider government =
       inheritors
       provider
       government
+
+
+announceTestament : TestParties -> Script (ContractId Testament)
+announceTestament TestParties { .. } = do
+  testament <- issueTestament provider government
+
+  submit government do
+    exerciseCmd testament AnnounceExecution with 
+      bank

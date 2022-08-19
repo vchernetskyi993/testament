@@ -1,0 +1,58 @@
+module Test.Account.Fund () where
+
+import Daml.Script (exerciseCmd, queryContractId, Script)
+import DA.Action (void)
+import DA.Assert (assertEq)
+import Main.Account (AddFunds(AddFunds, amountToAdd))
+import Test.Util (
+  allocateParties, 
+  announceTestament, 
+  TestParties(bank, government, TestParties),
+ )
+import Test.Account.Util (createAccount, validAccount)
+
+
+_should_add_funds : Script ()
+_should_add_funds = do
+  -- given
+  TestParties { .. } <- allocateParties
+  account <- createAccount bank government
+
+  -- when
+  updated <- submit bank do
+    exerciseCmd account $ AddFunds with 
+      amountToAdd = amount
+
+  -- then
+  Some actualAccount <- queryContractId government updated
+  
+  assertEq actualAccount $ (validAccount bank government) with amount
+
+
+_only_bank_should_add_funds : Script ()
+_only_bank_should_add_funds = do
+  -- given
+  TestParties { .. } <- allocateParties
+  account <- createAccount bank government
+
+  -- when
+  submitMustFail government do
+    exerciseCmd account $ AddFunds with 
+      amountToAdd = amount
+
+
+
+_should_not_add_funds_to_announced_account : Script ()
+_should_not_add_funds_to_announced_account = do
+  -- given
+  parties@(TestParties { .. }) <- allocateParties
+  account <- createAccount bank government
+  void $ announceTestament parties
+
+  -- when
+  submitMustFail bank do
+    exerciseCmd account $ AddFunds with 
+      amountToAdd = amount
+
+
+amount = 1000

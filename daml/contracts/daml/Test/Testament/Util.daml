@@ -1,0 +1,38 @@
+module Test.Testament.Util (
+  shouldValidateInheritors,
+  validTestament,
+) where
+
+import Daml.Script (Commands, Script)
+import DA.Foldable (forA_)
+import DA.Map qualified as M
+import Main.Testament (
+  Testament(announced, executed, government, inheritors, issuer, observers, provider, Testament),
+ )
+import Test.Util (validInheritors, validIssuer)
+
+
+shouldValidateInheritors : Party -> ([(Text, Int)] -> Commands a) -> Script ()
+shouldValidateInheritors party action = do
+  forA_ invalidInheritors $ \inheritors -> do
+    submitMustFail party (action inheritors)
+
+
+invalidInheritors : [[(Text, Int)]]
+invalidInheritors = 
+  [[("", 4000), ("3", 6000)], -- empty inheritor
+   [("2", 4000), ("  ", 6000)], -- blank inheritor
+   [("2", 4000), ("3", 6111)], -- shares > 10000
+   [("2", 3000), ("3", 6000)], -- shares < 10000
+   []] -- inheritors empty
+
+
+validTestament : Party -> Party -> Testament
+validTestament provider government = Testament with 
+  issuer = validIssuer
+  inheritors = M.fromList validInheritors
+  provider
+  government
+  observers = []
+  announced = False
+  executed = False

@@ -1,1 +1,57 @@
-module Main.Account () where
+module Main.Account (
+  Account(..),
+  CreateAccount(..), 
+  SignAccountCreation(..),
+  AddFunds(..),
+) where
+
+import Main.Testament (assertNotAnnounced, Testament)
+import Main.Util (isNotBlank)
+
+
+template Account 
+  with
+    holder : Text
+    amount : Int
+    bank : Party
+    government : Party
+  where
+    signatory bank, government
+
+    key (bank, holder) : (Party, Text)
+    maintainer key._1
+
+    nonconsuming choice AddFunds : ContractId Account with
+       amountToAdd : Int
+     controller bank
+        do
+          testamentOpt <- lookupByKey @Testament (government, holder)          
+          case testamentOpt of
+            Some testamentId -> (fetch testamentId) >>= assertNotAnnounced
+            None -> pure ()
+          
+          archive self 
+          create this with amount = amount + amountToAdd
+          
+
+template CreateAccount
+  with
+    holder : Text
+    bank : Party
+    government : Party
+  where
+    signatory bank
+    observer government
+
+    ensure partyToText bank == "Bank"
+      && partyToText government == "Government"
+      && isNotBlank holder
+
+    choice SignAccountCreation : ContractId Account
+     controller government
+        do
+          create Account with
+            holder
+            amount = 0
+            bank
+            government

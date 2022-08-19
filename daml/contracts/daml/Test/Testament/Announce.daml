@@ -15,9 +15,10 @@ import Test.Util (
   provider, 
   TestParties(TestParties), 
   validIssuer, 
+ )
+import Test.Testament.Util (
   validTestament,
  )
-
 
 _should_announce : Script ()
 _should_announce = do
@@ -32,7 +33,7 @@ _should_announce = do
 
   -- then
   Some (_, actualTestament) <- queryContractKey 
-    @Testament provider (provider, validIssuer)
+    @Testament provider (government, validIssuer)
 
   assertEq 
     actualTestament 

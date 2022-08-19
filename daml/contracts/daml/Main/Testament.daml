@@ -5,11 +5,13 @@ module Main.Testament (
   UpdateInheritors(..),
   Revoke(..),
   AnnounceExecution(..),
+  assertNotAnnounced,
 ) where
 
 import DA.Map (Map)
 import DA.Map qualified as M
-import DA.Text qualified as T
+import Main.Util (isNotBlank)
+
 
 template Testament 
   with
@@ -24,7 +26,7 @@ template Testament
     signatory provider, government
     observer observers
 
-    key (provider, issuer) : (Party, Text)
+    key (government, issuer) : (Party, Text)
     maintainer key._1
 
     nonconsuming choice UpdateInheritors : ContractId Testament with
@@ -90,6 +92,7 @@ template IssueProposal
             announced = False
             executed = False
 
+
 assertNotAnnounced : Testament -> Update () 
 assertNotAnnounced testament = do
   assertMsg "Execution should not be announced" $ not testament.announced
@@ -99,7 +102,3 @@ validateInheritors : Map Text Int -> Bool
 validateInheritors inheritors = 
   all isNotBlank (M.keys inheritors)
   && sum (M.values inheritors) == 10000
-
-
-isNotBlank : Text -> Bool
-isNotBlank = not . T.isEmpty . T.trim

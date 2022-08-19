@@ -2,6 +2,7 @@ module Test.Testament.Issue () where
 
 import Daml.Script (createCmd, exerciseCmd, queryContractId, Script)
 import Main.Testament (SignIssue(SignIssue))
+import DA.Action (void)
 import DA.Assert (assertEq)
 import Test.Util ( 
   allocateParties, 
@@ -9,9 +10,11 @@ import Test.Util (
   government,
   issueProposal, 
   provider,
-  shouldValidateInheritors, 
   TestParties(TestParties),
   validProposal, 
+ )
+import Test.Testament.Util (
+  shouldValidateInheritors, 
   validTestament,
  )
 
@@ -71,7 +74,7 @@ _should_not_issue_twice = do
   initialProposal <- submit provider do
     createCmd $ validProposal provider government
   
-  _ <- submit government do
+  void $ submit government do
     exerciseCmd initialProposal SignIssue
 
   -- issue same issueProposal twice
@@ -94,7 +97,7 @@ _should_issue_after_revoke = do
   initialProposal <- submit provider do
     createCmd $ validProposal provider government
   
-  _ <- submit government do
+  void $ submit government do
     exerciseCmd initialProposal SignIssue
 
   -- issue same issueProposal twice

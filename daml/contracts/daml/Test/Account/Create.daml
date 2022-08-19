@@ -1,0 +1,81 @@
+module Test.Account.Create () where
+
+import Daml.Script (createCmd, exerciseCmd, queryContractId, Script)
+import DA.Assert (assertEq)
+import Main.Account (
+  CreateAccount(CreateAccount, bank, government, holder), 
+  SignAccountCreation(SignAccountCreation),
+ )
+import Test.Util (allocateParties, TestParties(bank, TestParties, government, provider))
+import Test.Account.Util (validAccount)
+
+
+_should_create_account : Script ()
+_should_create_account = do
+  -- given
+  TestParties { .. } <- allocateParties
+
+  -- when
+  proposal <- submit bank do
+    createCmd $ CreateAccount with 
+      holder = "1"
+      bank
+      government
+
+  account <- submit government do
+    exerciseCmd proposal SignAccountCreation
+
+  -- then
+  Some actualAccount <- queryContractId government account
+  
+  assertEq actualAccount $ validAccount bank government
+
+  actualProposal <- queryContractId government proposal
+
+  assertEq actualProposal None
+
+
+_only_bank_should_create_account : Script ()
+_only_bank_should_create_account = do
+  -- given
+  TestParties { .. } <- allocateParties
+
+  -- when+then
+  submitMustFail government do
+    createCmd $ CreateAccount with 
+      holder = "1"
+      bank = government
+      government = bank
+
+
+_only_government_should_sign_creation : Script ()
+_only_government_should_sign_creation = do
+  -- given
+  TestParties { .. } <- allocateParties
+
+  -- when+then
+  submitMustFail bank do
+    createCmd $ CreateAccount with 
+      holder = "1"
+      bank = bank
+      government = bank
+
+
+_should_validate_holder : Script ()
+_should_validate_holder = do
+  -- given
+  TestParties { .. } <- allocateParties
+
+  -- empty holder
+  submitMustFail bank do
+    createCmd $ CreateAccount with 
+      holder = ""
+      bank
+      government
+
+  -- blank holder
+  submitMustFail bank do
+    createCmd $ CreateAccount with 
+      holder = "  "
+      bank
+      government

@@ -1,10 +1,10 @@
 module Test.Testament.Update () where
 
 import Daml.Script (exerciseCmd, queryContractKey, Script)
+import DA.Action (void)
 import DA.Assert (assertEq)
 import DA.Map qualified as M
 import Main.Testament (
-  AnnounceExecution(AnnounceExecution, bank),  
   Revoke(Revoke), 
   Testament, 
   UpdateInheritors(updatedInheritors, UpdateInheritors),
@@ -12,13 +12,16 @@ import Main.Testament (
 import Test.Util (
   bank,
   allocateParties, 
+  announceTestament,
   government, 
   issueTestament, 
   provider, 
-  shouldValidateInheritors, 
   TestParties(TestParties), 
   validInheritors,
   validIssuer, 
+ )
+import Test.Testament.Util (
+  shouldValidateInheritors, 
   validTestament,
  )
 
@@ -34,13 +37,13 @@ _should_update = do
   testament <- issueTestament provider government
 
   -- when
-  _ <- submit provider do
+  void $ submit provider do
     exerciseCmd testament UpdateInheritors with 
       updatedInheritors = updatedInheritorsValue
 
   -- then
   Some (_, actualTestament) <- queryContractKey 
-    @Testament provider (provider, validIssuer)
+    @Testament provider (government, validIssuer)
 
   assertEq 
     actualTestament 
@@ -100,12 +103,8 @@ _should_not_update_revoked = do
 _should_not_update_announced : Script ()
 _should_not_update_announced = do
   -- given
-  TestParties{ .. } <- allocateParties
-  testament <- issueTestament provider government
-
-  announced <- submit government do
-    exerciseCmd testament AnnounceExecution with 
-      bank
+  parties@(TestParties { .. }) <- allocateParties
+  announced <- announceTestament parties
 
   -- when+then
   submitMustFail provider do

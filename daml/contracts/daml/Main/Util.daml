@@ -1,0 +1,10 @@
+module Main.Util (
+  isNotBlank,
+) where
+
+
+import DA.Text qualified as T
+
+
+isNotBlank : Text -> Bool
+isNotBlank = not . T.isEmpty . T.trim
