@@ -80,5 +80,4 @@ announceTestament TestParties { .. } = do
   testament <- issueTestament provider government
 
   submit government do
-    exerciseCmd testament AnnounceExecution with 
-      bank
+    exerciseCmd testament AnnounceExecution with bank

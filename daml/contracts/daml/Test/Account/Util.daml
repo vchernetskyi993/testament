@@ -1,13 +1,15 @@
 module Test.Account.Util (
   createAccount,
+  fundAccount,
   validAccount,
 ) where
 
 import Daml.Script (createCmd, exerciseCmd, Script)
 import Main.Account (
-  Account(Account, amount, bank, government, holder),
+  Account(Account, bank, government, holder, posession),
   CreateAccount(bank, CreateAccount, government, holder), 
   SignAccountCreation(SignAccountCreation),
+  AddFunds(AddFunds, amount),
  )
 
 
@@ -23,9 +25,18 @@ createAccount bank government = do
     exerciseCmd proposal SignAccountCreation
 
 
+fundAccount : Party -> Party -> Int -> Script (ContractId Account)
+fundAccount bank government amount = do
+  account <- createAccount bank government
+
+  submit bank do
+    exerciseCmd account $ AddFunds with 
+      amount
+
+
 validAccount : Party -> Party -> Account
 validAccount bank government = Account with 
   holder = "1"
-  amount = 0
+  posession = 0
   bank
   government

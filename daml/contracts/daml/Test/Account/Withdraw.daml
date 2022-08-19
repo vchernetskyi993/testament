@@ -1,0 +1,62 @@
+module Test.Account.Withdraw () where
+
+
+import Daml.Script (exerciseCmd, Script, queryContractId)
+import DA.Assert (assertEq)
+import Main.Account (WithdrawFunds(amount, WithdrawFunds))
+import Test.Account.Util (fundAccount, validAccount)
+import Test.Util (allocateParties, TestParties(bank, government, TestParties))
+
+
+_should_withdraw_funds : Script ()
+_should_withdraw_funds = do
+  -- given
+  TestParties { .. } <- allocateParties
+  account <- fundAccount bank government 1000
+
+  -- when
+  updated <- submit bank do
+    exerciseCmd account WithdrawFunds with amount = 500
+
+  -- then
+  Some actualAccount <- queryContractId government updated
+  
+  assertEq actualAccount $ (validAccount bank government) with posession = 500
+
+
+_should_withdraw_all_funds : Script ()
+_should_withdraw_all_funds = do
+  -- given
+  TestParties { .. } <- allocateParties
+  account <- fundAccount bank government 1000
+
+  -- when
+  updated <- submit bank do
+    exerciseCmd account WithdrawFunds with amount = 1000
+
+  -- then
+  Some actualAccount <- queryContractId government updated
+  
+  assertEq actualAccount $ (validAccount bank government) with posession = 0
+
+
+_should_not_withdraw_below_zero : Script ()
+_should_not_withdraw_below_zero = do
+  -- given
+  TestParties { .. } <- allocateParties
+  account <- fundAccount bank government 1000
+
+  -- when+then
+  submitMustFail bank do
+    exerciseCmd account WithdrawFunds with amount = 2000
+
+
+_only_bank_should_withdraw : Script ()
+_only_bank_should_withdraw = do
+  -- given
+  TestParties { .. } <- allocateParties
+  account <- fundAccount bank government 1000
+
+  -- when+then
+  submitMustFail government do
+    exerciseCmd account WithdrawFunds with amount = 500
