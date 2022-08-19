@@ -1,0 +1,71 @@
+module Main.Factory (
+  TestamentFactory(..),
+  IssueTestament(..),
+  AnnounceExecution(..),
+) where
+
+
+import DA.Map (Map)
+import Main.Testament (
+  assertNotAnnounced, 
+  Testament(announced, bank, executed, government, inheritors, issuer, provider, Testament),
+  validateInheritors,
+ )
+import Main.Util (isNotBlank)
+
+
+template TestamentFactory 
+  with
+    provider : Party
+    government : Party
+    bank : Party
+  where
+    signatory government
+    observer bank, provider
+
+    ensure partyToText provider == "Provider"
+      && partyToText government == "Government"
+      && partyToText bank == "Bank"
+
+    nonconsuming choice IssueTestament : ContractId Testament with
+      issuer : Text
+      inheritors : Map Text Int
+     controller provider
+        do 
+          assertMsg "Issuer should not be blank" $ isNotBlank issuer
+          validateInheritors inheritors
+
+          create Testament with 
+            issuer
+            inheritors
+            provider = provider
+            government = government
+            bank = None
+            announced = False
+            executed = False
+
+    nonconsuming choice AnnounceExecution : ContractId Testament with
+      issuer : Text
+     controller government
+        do
+          optionalTestament <- lookupByKey @Testament (government, issuer)
+          testamentId <- case optionalTestament of
+              Some testamentId -> pure testamentId
+              None -> fail $ "Testament not found for " <> issuer
+          testament <- fetch testamentId
+
+          assertNotAnnounced testament
+
+          archive testamentId
+          create testament with
+            announced = True
+            bank = Some bank
+
+    -- choice ExecuteTestament : ContractId Testament with
+    --   issuer : Text
+    --  controller bank
+    --     do
+    --       create this with
+    --         executed = True
+
+    --       lookupByKey @Account

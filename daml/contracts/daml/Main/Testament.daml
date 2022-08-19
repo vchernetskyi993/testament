@@ -1,11 +1,9 @@
 module Main.Testament (
   Testament(..), 
-  IssueProposal(..), 
-  SignIssue(..), 
   UpdateInheritors(..),
   Revoke(..),
-  AnnounceExecution(..),
   assertNotAnnounced,
+  validateInheritors,
 ) where
 
 import DA.Map (Map)
@@ -19,12 +17,14 @@ template Testament
     inheritors : Map Text Int
     provider : Party
     government : Party
-    observers : [Party]
+    bank : Optional Party
     announced : Bool
     executed : Bool
   where
     signatory provider, government
-    observer observers
+    observer case bank of
+      Some b -> [b]
+      None -> []
 
     key (government, issuer) : (Party, Text)
     maintainer key._1
@@ -33,8 +33,7 @@ template Testament
       updatedInheritors : Map Text Int
      controller provider
         do
-          assertMsg "Inheritors are not valid" $ 
-            validateInheritors updatedInheritors
+          validateInheritors updatedInheritors
 
           assertMsg "Inheritors should differ from existing" $ 
             updatedInheritors /= inheritors
@@ -53,52 +52,14 @@ template Testament
 
           return ()
 
-    nonconsuming choice AnnounceExecution : ContractId Testament with
-      bank : Party
-     controller government
-        do
-          assertNotAnnounced this
-
-          archive self
-          create this with
-            announced = True
-            observers = [bank]
-
-
-template IssueProposal
-  with
-    issuer : Text
-    inheritors : Map Text Int
-    provider : Party
-    government : Party
-  where
-    signatory provider
-    observer government
-
-    ensure isNotBlank issuer
-      && validateInheritors inheritors
-      && partyToText provider == "Provider"
-      && partyToText government == "Government"
-
-    choice SignIssue : ContractId Testament
-      controller government
-        do 
-          create Testament with 
-            issuer
-            inheritors
-            provider = provider
-            government = government
-            observers = []
-            announced = False
-            executed = False
-
 
 assertNotAnnounced : Testament -> Update () 
 assertNotAnnounced testament = do
   assertMsg "Execution should not be announced" $ not testament.announced
 
 
-validateInheritors : Map Text Int -> Bool
-validateInheritors inheritors = 
-  all isNotBlank (M.keys inheritors)
-  && sum (M.values inheritors) == 10000
+validateInheritors : CanAssert m => Map Text Int -> m ()
+validateInheritors inheritors = do
+  assertMsg "Inheritors are not valid" $ 
+    all isNotBlank (M.keys inheritors)
+    && sum (M.values inheritors) == 10000

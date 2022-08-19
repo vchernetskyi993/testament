@@ -1,17 +1,17 @@
 module Test.Testament.Issue () where
 
 import Daml.Script (createCmd, exerciseCmd, queryContractId, Script)
-import Main.Testament (SignIssue(SignIssue))
+import Main.Testament ()
 import DA.Action (void)
 import DA.Assert (assertEq)
-import Test.Util ( 
+import Test.Util (  
   allocateParties, 
   bank,
   government,
-  issueProposal, 
+  issueTestament,
   provider,
   TestParties(TestParties),
-  validProposal, 
+  validFactory,
  )
 import Test.Testament.Util (
   shouldValidateInheritors, 
@@ -22,23 +22,17 @@ import Test.Testament.Util (
 _should_issue_testament : Script ()
 _should_issue_testament = do
   -- given
-  TestParties { .. } <- allocateParties
+  parties@(TestParties { .. }) <- allocateParties
 
-  -- when
-  proposal <- submit provider do
-    createCmd $ validProposal provider government
-  
-  testament <- submit government do
-    exerciseCmd proposal SignIssue
+  -- when  
+  factory <- submit government do
+    createCmd $ validFactory parties
+  testament <- issueTestament provider None None factory
 
   -- then
   Some actualTestament <- queryContractId government testament
   
   assertEq actualTestament $ validTestament provider government
-
-  actualProposal <- queryContractId government proposal
-
-  assertEq actualProposal None
 
 
 _should_validate_proposal : Script ()

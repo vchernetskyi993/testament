@@ -1,0 +1,60 @@
+module Test.Testament.Execute () where
+
+
+import Daml.Script (exerciseCmd, queryContractId, queryContractKey, Script)
+import DA.Action (void)
+import DA.Assert (assertEq)
+import Main.Testament (Testament(), ExecuteTestament(bank, ExecuteTestament))
+import Test.Util (
+  allocateParties, 
+  announceTestament, 
+  TestParties(bank, government, provider, TestParties),
+  validIssuer,
+ )
+import Test.Account.Util ( 
+  fundAccount,
+  validAccount,
+ )
+import Test.Testament.Util (
+  validTestament,
+ )
+
+
+_should_execute_testament : Script ()
+_should_execute_testament = do
+  -- -- given
+  -- parties@(TestParties { .. }) <- allocateParties
+  -- accountId <- fundAccount bank government 3000
+  -- testament <- announceTestament parties
+
+  -- -- when
+  -- void $ submit bank do
+  --   exerciseCmd testament ExecuteTestament with bank
+
+  -- -- then
+  -- Some (_, actualTestament) <- queryContractKey 
+  --   @Testament provider (government, validIssuer)
+
+  -- assertEq actualTestament (validTestament provider government) with 
+  --   announced = True
+  --   observers = [bank]
+  --   executed = True
+
+  -- Some actualAccount <- queryContractId government accountId
+
+  -- assertEq actualAccount $ validAccount bank government
+  return ()
+
+_only_bank_should_execute_testament : Script ()
+_only_bank_should_execute_testament = do
+  return ()
+
+
+_should_not_execute_not_announced : Script ()
+_should_not_execute_not_announced = do
+  return ()
+
+
+_should_not_execute_executed : Script ()
+_should_not_execute_executed = do
+  return ()

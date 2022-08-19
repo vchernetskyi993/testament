@@ -7,7 +7,7 @@ import Daml.Script (Commands, Script)
 import DA.Foldable (forA_)
 import DA.Map qualified as M
 import Main.Testament (
-  Testament(announced, executed, government, inheritors, issuer, observers, provider, Testament),
+  Testament(announced, bank, executed, government, inheritors, issuer, provider, Testament),
  )
 import Test.Util (validInheritors, validIssuer)
 
@@ -33,6 +33,6 @@ validTestament provider government = Testament with
   inheritors = M.fromList validInheritors
   provider
   government
-  observers = []
+  bank = None
   announced = False
   executed = False

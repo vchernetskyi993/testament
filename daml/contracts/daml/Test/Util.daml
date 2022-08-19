@@ -1,23 +1,26 @@
 module Test.Util (
   allocateParties, 
   announceTestament,
-  issueProposal,
   issueTestament, 
   TestParties(..), 
+  validFactory,
   validInheritors, 
   validIssuer, 
-  validProposal,
 ) where
 
 import Daml.Script (allocateParty, createCmd, exerciseCmd, Script)
+import DA.Action (void)
 import DA.Map qualified as M
 import DA.Optional (fromOptional)
-import Main.Testament (
-  IssueProposal(IssueProposal, inheritors, issuer, provider, government), 
-  SignIssue(SignIssue), 
-  Testament,
-  AnnounceExecution(AnnounceExecution, bank),
+import Main.Factory (
+  TestamentFactory(bank, government, provider, TestamentFactory),
+  IssueTestament(inheritors, issuer, IssueTestament), 
+  AnnounceExecution(AnnounceExecution, issuer),
  )
+import Main.Testament (
+  Testament,
+ )
+
 
 data TestParties = TestParties 
   with 
@@ -39,17 +42,19 @@ allocateParties = do
     bank
 
 
-issueTestament : Party -> Party -> Script (ContractId Testament)
-issueTestament provider government = do 
-  proposal <- submit provider do 
-    createCmd $ validProposal provider government
+issueTestament : Party -> Optional Text -> Optional [(Text, Int)] -> ContractId TestamentFactory -> Script (ContractId Testament)
+issueTestament provider issuerOpt inheritorsOpt factory = do 
+  submit provider do 
+    exerciseCmd factory IssueTestament with 
+      issuer = fromOptional validIssuer issuerOpt
+      inheritors = M.fromList $ fromOptional validInheritors inheritorsOpt
 
-  submit government do 
-    exerciseCmd proposal SignIssue
 
-
-validProposal : Party -> Party -> IssueProposal
-validProposal = issueProposal None None
+validFactory : TestParties -> TestamentFactory
+validFactory TestParties { .. } = TestamentFactory with 
+  provider = provider 
+  government = government
+  bank = bank
 
 
 validIssuer : Text
@@ -60,24 +65,11 @@ validInheritors : [(Text, Int)]
 validInheritors = [("2", 4000), ("3", 6000)]
 
 
-issueProposal : Optional Text -> Optional [(Text, Int)] -> Party -> Party -> IssueProposal
-issueProposal issuerOpt inheritorsOpt provider government = 
-  let 
-    issuer = fromOptional validIssuer issuerOpt
-    inheritors = M.fromList $ fromOptional 
-      validInheritors
-      inheritorsOpt
-  in
-    IssueProposal with 
-      issuer
-      inheritors
-      provider
-      government
-
-
 announceTestament : TestParties -> Script (ContractId Testament)
-announceTestament TestParties { .. } = do
-  testament <- issueTestament provider government
+announceTestament parties@(TestParties { .. }) = do
+  factory <- submit government do
+    createCmd $ validFactory parties
+  void $ issueTestament provider None None factory
 
   submit government do
-    exerciseCmd testament AnnounceExecution with bank
+    exerciseCmd factory $ AnnounceExecution with issuer = validIssuer
