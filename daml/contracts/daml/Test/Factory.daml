@@ -1,3 +1,38 @@
 module Test.Factory () where
 
--- TODO: validate parties during factory creation
+import Daml.Script (createCmd, Script)
+import Main.Factory (
+  NewFactoryProposal(bank, government, NewFactoryProposal, provider),
+ )
+
+import Test.Util (
+  allocateParties,
+  TestParties(bank, government, provider, TestParties),
+ )
+
+
+_should_validate_factory_proposal_input : Script ()
+_should_validate_factory_proposal_input = do
+  -- given
+  TestParties { bank, government, provider } <- allocateParties
+
+  -- invalid provider
+  submitMustFail provider do
+    createCmd $ NewFactoryProposal with 
+      provider = government 
+      government = government
+      bank = bank
+
+  -- invalid government
+  submitMustFail provider do
+    createCmd $ NewFactoryProposal with 
+      provider = provider 
+      government = bank
+      bank = bank
+
+  -- invalid bank
+  submitMustFail provider do
+    createCmd $ NewFactoryProposal with 
+      provider = provider 
+      government = government
+      bank = provider
