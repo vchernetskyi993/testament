@@ -1,19 +1,22 @@
 module Test.Util (
   allocateParties, 
   announceTestament,
+  createValidFactory,
   issueTestament, 
-  TestParties(..), 
-  validFactory,
+  issueValidTestament,
+  TestParties(..),
   validInheritors, 
   validIssuer, 
 ) where
 
-import Daml.Script (allocateParty, createCmd, exerciseCmd, Script)
+import Daml.Script (allocateParty, Commands, createCmd, exerciseCmd, Script)
 import DA.Action (void)
 import DA.Map qualified as M
 import DA.Optional (fromOptional)
 import Main.Factory (
-  TestamentFactory(bank, government, provider, TestamentFactory),
+  NewFactoryProposal(bank, government, provider, NewFactoryProposal),
+  CreateFactory(CreateFactory),
+  TestamentFactory,
   IssueTestament(inheritors, issuer, IssueTestament), 
   AnnounceExecution(AnnounceExecution, issuer),
  )
@@ -42,16 +45,29 @@ allocateParties = do
     bank
 
 
-issueTestament : Party -> Optional Text -> Optional [(Text, Int)] -> ContractId TestamentFactory -> Script (ContractId Testament)
-issueTestament provider issuerOpt inheritorsOpt factory = do 
+issueValidTestament : ContractId TestamentFactory -> Party -> Script (ContractId Testament)
+issueValidTestament factory provider =
   submit provider do 
-    exerciseCmd factory IssueTestament with 
-      issuer = fromOptional validIssuer issuerOpt
-      inheritors = M.fromList $ fromOptional validInheritors inheritorsOpt
+    issueTestament factory None None
 
 
-validFactory : TestParties -> TestamentFactory
-validFactory TestParties { .. } = TestamentFactory with 
+issueTestament : ContractId TestamentFactory -> Optional Text -> Optional [(Text, Int)] -> Commands (ContractId Testament)
+issueTestament factory issuerOpt inheritorsOpt = do
+  exerciseCmd factory IssueTestament with 
+    issuer = fromOptional validIssuer issuerOpt
+    inheritors = M.fromList $ fromOptional validInheritors inheritorsOpt
+
+
+createValidFactory : TestParties -> Script (ContractId TestamentFactory)
+createValidFactory parties@(TestParties { government, provider }) = do
+  proposal <- submit provider do
+    createCmd $ validFactoryProposal parties
+  submit government do
+    exerciseCmd proposal CreateFactory
+
+
+validFactoryProposal : TestParties -> NewFactoryProposal
+validFactoryProposal TestParties { .. } = NewFactoryProposal with 
   provider = provider 
   government = government
   bank = bank
@@ -67,9 +83,9 @@ validInheritors = [("2", 4000), ("3", 6000)]
 
 announceTestament : TestParties -> Script (ContractId Testament)
 announceTestament parties@(TestParties { .. }) = do
-  factory <- submit government do
-    createCmd $ validFactory parties
-  void $ issueTestament provider None None factory
+  factory <- createValidFactory parties
+  void $ submit provider do
+   issueTestament factory None None 
 
   submit government do
     exerciseCmd factory $ AnnounceExecution with issuer = validIssuer

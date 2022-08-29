@@ -1,4 +1,6 @@
 module Main.Factory (
+  NewFactoryProposal(..),
+  CreateFactory(CreateFactory),
   TestamentFactory(..),
   IssueTestament(..),
   AnnounceExecution(..),
@@ -20,8 +22,8 @@ template TestamentFactory
     government : Party
     bank : Party
   where
-    signatory government
-    observer bank, provider
+    signatory provider, government
+    observer bank
 
     ensure partyToText provider == "Provider"
       && partyToText government == "Government"
@@ -69,3 +71,17 @@ template TestamentFactory
     --         executed = True
 
     --       lookupByKey @Account
+
+template NewFactoryProposal 
+  with
+    provider : Party
+    government : Party
+    bank : Party
+  where
+    signatory provider
+    observer government
+
+    choice CreateFactory : ContractId TestamentFactory
+     controller government
+        do
+          create TestamentFactory with provider, government, bank

@@ -2,16 +2,20 @@ module Test.Testament.Announce () where
 
 import Daml.Script (exerciseCmd, queryContractKey, Script)
 import DA.Assert (assertEq)
+import DA.Functor (void)
+import Main.Factory (
+  AnnounceExecution(AnnounceExecution, issuer),
+ )
 import Main.Testament (
-  AnnounceExecution(AnnounceExecution, bank), 
   Revoke(Revoke), 
   Testament,
  )
 import Test.Util (
   allocateParties, 
   bank, 
+  createValidFactory,
   government, 
-  issueTestament, 
+  issueValidTestament,
   provider, 
   TestParties(TestParties), 
   validIssuer, 
@@ -23,13 +27,14 @@ import Test.Testament.Util (
 _should_announce : Script ()
 _should_announce = do
   -- given
-  TestParties { .. } <- allocateParties
-  testament <- issueTestament provider government
+  parties@(TestParties { .. }) <- allocateParties
+  factory <- createValidFactory parties
+  void $ issueValidTestament factory provider
 
   -- when
-  _ <- submit government do
-    exerciseCmd testament AnnounceExecution with 
-      bank
+  void $ submit government do
+    exerciseCmd factory AnnounceExecution with 
+      issuer = validIssuer
 
   -- then
   Some (_, actualTestament) <- queryContractKey 
@@ -39,47 +44,50 @@ _should_announce = do
     actualTestament 
     (validTestament provider government) with 
       announced = True
-      observers = [bank]
+      bank = Some bank
 
 
 _only_government_should_announce : Script ()
 _only_government_should_announce = do
   -- given
-  TestParties { .. } <- allocateParties
-  testament <- issueTestament provider government
+  parties@(TestParties { .. }) <- allocateParties
+  factory <- createValidFactory parties
+  void $ issueValidTestament factory provider
 
   -- when+then
   submitMustFail provider do
-    exerciseCmd testament AnnounceExecution with 
-      bank
+    exerciseCmd factory AnnounceExecution with 
+      issuer = validIssuer
 
 
 _should_not_announce_announced : Script ()
 _should_not_announce_announced = do
   -- given
-  TestParties { .. } <- allocateParties
-  testament <- issueTestament provider government
+  parties@(TestParties { .. }) <- allocateParties
+  factory <- createValidFactory parties
+  void $ issueValidTestament factory provider
 
-  announced <- submit government do
-    exerciseCmd testament AnnounceExecution with 
-      bank
+  void $ submit government do
+    exerciseCmd factory AnnounceExecution with 
+      issuer = validIssuer
 
   -- when+then
   submitMustFail government do
-    exerciseCmd announced AnnounceExecution with 
-      bank
+    exerciseCmd factory AnnounceExecution with 
+      issuer = validIssuer
 
 
 _should_not_announce_revoked : Script ()
 _should_not_announce_revoked = do
   -- given
-  TestParties { .. } <- allocateParties
-  testament <- issueTestament provider government
+  parties@(TestParties { .. }) <- allocateParties
+  factory <- createValidFactory parties
+  testament <- issueValidTestament factory provider
 
   submit provider do
     exerciseCmd testament Revoke
 
   -- when+then
   submitMustFail government do
-    exerciseCmd testament AnnounceExecution with 
-      bank
+    exerciseCmd factory AnnounceExecution with 
+      issuer = validIssuer

@@ -1,0 +1,3 @@
+module Test.Factory () where
+
+-- TODO: validate parties during factory creation

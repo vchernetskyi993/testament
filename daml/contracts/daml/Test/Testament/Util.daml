@@ -1,4 +1,5 @@
 module Test.Testament.Util (
+  createFactoryAndIssueTestament,
   shouldValidateInheritors,
   validTestament,
 ) where
@@ -9,13 +10,25 @@ import DA.Map qualified as M
 import Main.Testament (
   Testament(announced, bank, executed, government, inheritors, issuer, provider, Testament),
  )
-import Test.Util (validInheritors, validIssuer)
+import Test.Util (
+  createValidFactory,
+  issueValidTestament,
+  TestParties(provider, TestParties), 
+  validInheritors, 
+  validIssuer,
+ )
 
 
 shouldValidateInheritors : Party -> ([(Text, Int)] -> Commands a) -> Script ()
 shouldValidateInheritors party action = do
   forA_ invalidInheritors $ \inheritors -> do
     submitMustFail party (action inheritors)
+
+
+createFactoryAndIssueTestament : TestParties -> Script (ContractId Testament)
+createFactoryAndIssueTestament parties@(TestParties { provider }) = do
+  factory <- createValidFactory parties
+  issueValidTestament factory provider
 
 
 invalidInheritors : [[(Text, Int)]]

@@ -1,17 +1,18 @@
 module Test.Testament.Issue () where
 
-import Daml.Script (createCmd, exerciseCmd, queryContractId, Script)
-import Main.Testament ()
+import Daml.Script (exerciseCmd, queryContractId, Script)
+import Main.Testament (Revoke(Revoke))
 import DA.Action (void)
 import DA.Assert (assertEq)
 import Test.Util (  
   allocateParties, 
   bank,
+  createValidFactory,
   government,
   issueTestament,
+  issueValidTestament,
   provider,
   TestParties(TestParties),
-  validFactory,
  )
 import Test.Testament.Util (
   shouldValidateInheritors, 
@@ -23,11 +24,10 @@ _should_issue_testament : Script ()
 _should_issue_testament = do
   -- given
   parties@(TestParties { .. }) <- allocateParties
+  factory <- createValidFactory parties
 
   -- when  
-  factory <- submit government do
-    createCmd $ validFactory parties
-  testament <- issueTestament provider None None factory
+  testament <- issueValidTestament factory provider
 
   -- then
   Some actualTestament <- queryContractId government testament
@@ -38,69 +38,50 @@ _should_issue_testament = do
 _should_validate_proposal : Script ()
 _should_validate_proposal = do
   -- given
-  TestParties { .. } <- allocateParties
+  parties@(TestParties { .. }) <- allocateParties
+  factory <- createValidFactory parties
 
   -- empty issuer
-  submitMustFail provider do
-    createCmd $ issueProposal (Some "") None provider government
+  submitMustFail provider do 
+    issueTestament factory (Some "") None
 
-   -- blank issuer
-  submitMustFail provider do
-    createCmd $ issueProposal (Some "   ") None provider government
+  -- blank issuer
+  submitMustFail provider do 
+    issueTestament factory (Some "   ") None
 
   shouldValidateInheritors provider \inheritors -> do
-    createCmd $ issueProposal None (Some inheritors) provider government
+    issueTestament factory None (Some inheritors)
 
   -- only provider should issue
   submitMustFail bank do
-    createCmd $ validProposal bank government
-
-  -- only government should SignIssue
-  submitMustFail provider do
-    createCmd $ validProposal provider bank
+    issueTestament factory None None
 
 
 _should_not_issue_twice : Script ()
 _should_not_issue_twice = do
   -- given
-  TestParties { .. } <- allocateParties
+  parties@(TestParties { .. }) <- allocateParties
+  factory <- createValidFactory parties
+  void $ issueValidTestament factory provider
 
-  initialProposal <- submit provider do
-    createCmd $ validProposal provider government
-  
-  void $ submit government do
-    exerciseCmd initialProposal SignIssue
-
-  -- issue same issueProposal twice
-  submitMustFail government do
-    exerciseCmd initialProposal SignIssue
-
-  duplicateProposal <- submit provider do
-    createCmd $ validProposal provider government
-
-  -- issue same testament twice
-  submitMustFail government do
-    exerciseCmd duplicateProposal SignIssue
+  -- when+then
+  submitMustFail provider do 
+    issueTestament factory None None
 
 
 _should_issue_after_revoke : Script ()
 _should_issue_after_revoke = do
   -- given
-  TestParties { .. } <- allocateParties
+  parties@(TestParties { .. }) <- allocateParties
+  factory <- createValidFactory parties
+  initialTestament <- issueValidTestament factory provider
+  submit provider do
+    exerciseCmd initialTestament Revoke
 
-  initialProposal <- submit provider do
-    createCmd $ validProposal provider government
+  -- when
+  newTestamentId <- issueValidTestament factory provider
+
+  -- then
+  Some actualTestament <- queryContractId government newTestamentId
   
-  void $ submit government do
-    exerciseCmd initialProposal SignIssue
-
-  -- issue same issueProposal twice
-  submitMustFail government do
-    exerciseCmd initialProposal SignIssue
-
-  duplicateProposal <- submit provider do
-    createCmd $ validProposal provider government
-
-  -- issue same testament twice
-  submitMustFail government do
-    exerciseCmd duplicateProposal SignIssue
+  assertEq actualTestament $ validTestament provider government

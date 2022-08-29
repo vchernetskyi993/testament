@@ -4,7 +4,7 @@ module Test.Testament.Execute () where
 import Daml.Script (exerciseCmd, queryContractId, queryContractKey, Script)
 import DA.Action (void)
 import DA.Assert (assertEq)
-import Main.Testament (Testament(), ExecuteTestament(bank, ExecuteTestament))
+import Main.Testament (Testament())
 import Test.Util (
   allocateParties, 
   announceTestament, 
@@ -19,6 +19,8 @@ import Test.Testament.Util (
   validTestament,
  )
 
+
+-- TODO: test execution
 
 _should_execute_testament : Script ()
 _should_execute_testament = do
