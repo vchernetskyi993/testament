@@ -84,8 +84,7 @@ validInheritors = [("2", 4000), ("3", 6000)]
 announceTestament : TestParties -> Script (ContractId Testament)
 announceTestament parties@(TestParties { .. }) = do
   factory <- createValidFactory parties
-  void $ submit provider do
-   issueTestament factory None None 
+  void $ issueValidTestament factory provider
 
   submit government do
     exerciseCmd factory $ AnnounceExecution with issuer = validIssuer

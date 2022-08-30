@@ -4,59 +4,122 @@ module Test.Testament.Execute () where
 import Daml.Script (exerciseCmd, queryContractId, queryContractKey, Script)
 import DA.Action (void)
 import DA.Assert (assertEq)
-import Main.Testament (Testament())
+import Main.Account (Account(Account, bank, holder, government, posession))
+import Main.Factory (
+  AnnounceExecution(AnnounceExecution, issuer),
+  ExecuteTestament(ExecuteTestament, issuer),
+ )
 import Test.Util (
   allocateParties, 
-  announceTestament, 
+  createValidFactory,
+  issueValidTestament,
   TestParties(bank, government, provider, TestParties),
+  validInheritors,
   validIssuer,
  )
-import Test.Account.Util ( 
+import Test.Account.Util (
   fundAccount,
+  fundIssuerAccount,
   validAccount,
  )
-import Test.Testament.Util (
+import Test.Testament.Util (  
   validTestament,
  )
 
 
--- TODO: test execution
-
 _should_execute_testament : Script ()
 _should_execute_testament = do
-  -- -- given
-  -- parties@(TestParties { .. }) <- allocateParties
-  -- accountId <- fundAccount bank government 3000
-  -- testament <- announceTestament parties
+  -- given
+  let
+    initialPosession = 3000
+    [(firstInheritor, firstInheritorShare), 
+     (secondInheritor, secondInheritorShare)] = validInheritors
+    secondInheritorPosession = 1500
+    addedPosession share = initialPosession * share / 10000
 
-  -- -- when
-  -- void $ submit bank do
-  --   exerciseCmd testament ExecuteTestament with bank
+  parties@(TestParties { .. }) <- allocateParties
+  void $ fundIssuerAccount bank government initialPosession
+  void $ fundAccount secondInheritor bank government secondInheritorPosession
 
-  -- -- then
-  -- Some (_, actualTestament) <- queryContractKey 
-  --   @Testament provider (government, validIssuer)
+  factory <- createValidFactory parties
+  void $ issueValidTestament factory provider
+  void $ submit government do
+    exerciseCmd factory AnnounceExecution with issuer = validIssuer
 
-  -- assertEq actualTestament (validTestament provider government) with 
-  --   announced = True
-  --   observers = [bank]
-  --   executed = True
+  -- when
+  executedId <- submit bank do
+    exerciseCmd factory ExecuteTestament with issuer = validIssuer
 
-  -- Some actualAccount <- queryContractId government accountId
+  -- then
+  Some actualTestament <- queryContractId provider executedId
 
-  -- assertEq actualAccount $ validAccount bank government
-  return ()
+  assertEq actualTestament (validTestament provider government) with 
+    announced = True
+    bank = Some bank
+    executed = True
+
+  Some (_, actualAccount) <- queryContractKey @Account government (bank, validIssuer)
+
+  assertEq actualAccount $ (validAccount bank government) with posession = 0
+
+  Some (_, firstInheritorAccount) <- queryContractKey @Account government (bank, firstInheritor)
+  assertEq firstInheritorAccount $ Account with 
+    holder = firstInheritor
+    posession = addedPosession firstInheritorShare
+    bank
+    government
+
+  Some (_, secondInheritorAccount) <- queryContractKey @Account government (bank, secondInheritor)
+  assertEq secondInheritorAccount $ Account with 
+    holder = secondInheritor
+    posession = secondInheritorPosession + addedPosession secondInheritorShare
+    bank
+    government   
+
 
 _only_bank_should_execute_testament : Script ()
 _only_bank_should_execute_testament = do
-  return ()
+  -- given
+  parties@(TestParties { .. }) <- allocateParties
+  void $ fundIssuerAccount bank government 3000
+
+  factory <- createValidFactory parties
+  void $ issueValidTestament factory provider
+  void $ submit government do
+    exerciseCmd factory AnnounceExecution with issuer = validIssuer
+
+  -- when+then
+  submitMustFail government do
+    exerciseCmd factory ExecuteTestament with issuer = validIssuer
 
 
 _should_not_execute_not_announced : Script ()
 _should_not_execute_not_announced = do
-  return ()
+    -- given
+  parties@(TestParties { .. }) <- allocateParties
+  void $ fundIssuerAccount bank government 3000
+
+  factory <- createValidFactory parties
+  void $ issueValidTestament factory provider
+
+  -- when+then
+  submitMustFail bank do
+    exerciseCmd factory ExecuteTestament with issuer = validIssuer
 
 
 _should_not_execute_executed : Script ()
 _should_not_execute_executed = do
-  return ()
+  -- given
+  parties@(TestParties { .. }) <- allocateParties
+  void $ fundIssuerAccount bank government 3000
+
+  factory <- createValidFactory parties
+  void $ issueValidTestament factory provider
+  void $ submit government do
+    exerciseCmd factory AnnounceExecution with issuer = validIssuer
+  void $ submit bank do
+    exerciseCmd factory ExecuteTestament with issuer = validIssuer
+
+  -- when+then
+  submitMustFail bank do
+    exerciseCmd factory ExecuteTestament with issuer = validIssuer

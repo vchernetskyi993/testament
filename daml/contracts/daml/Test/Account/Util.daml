@@ -1,6 +1,8 @@
 module Test.Account.Util (
   createAccount,
+  createIssuerAccount,
   fundAccount,
+  fundIssuerAccount,
   validAccount,
 ) where
 
@@ -11,13 +13,16 @@ import Main.Account (
   SignAccountCreation(SignAccountCreation),
   AddFunds(AddFunds, amount),
  )
+import Test.Util (
+  validIssuer,
+ )
 
 
-createAccount : Party -> Party -> Script (ContractId Account)
-createAccount bank government = do
+createAccount : Text -> Party -> Party -> Script (ContractId Account)
+createAccount holder bank government = do
   proposal <- submit bank do
     createCmd $ CreateAccount with 
-      holder = "1"
+      holder
       bank
       government
 
@@ -25,13 +30,21 @@ createAccount bank government = do
     exerciseCmd proposal SignAccountCreation
 
 
-fundAccount : Party -> Party -> Int -> Script (ContractId Account)
-fundAccount bank government amount = do
-  account <- createAccount bank government
+createIssuerAccount : Party -> Party -> Script (ContractId Account)
+createIssuerAccount = createAccount validIssuer 
+
+
+fundAccount : Text -> Party -> Party -> Int -> Script (ContractId Account)
+fundAccount holder bank government amount = do
+  account <- createAccount holder bank government 
 
   submit bank do
     exerciseCmd account $ AddFunds with 
       amount
+
+
+fundIssuerAccount : Party -> Party -> Int -> Script (ContractId Account)
+fundIssuerAccount = fundAccount validIssuer
 
 
 validAccount : Party -> Party -> Account

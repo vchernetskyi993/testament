@@ -4,10 +4,18 @@ module Main.Factory (
   TestamentFactory(..),
   IssueTestament(..),
   AnnounceExecution(..),
+  ExecuteTestament(..),
 ) where
 
 
+import DA.Foldable (forA_)
+import DA.Functor (void, (<&>))
 import DA.Map (Map)
+import DA.Map as M (toList)
+import DA.Optional (fromSomeNote)
+import Main.Account (
+  Account(Account, bank, government, holder, posession),
+ )
 import Main.Testament (
   assertNotAnnounced, 
   Testament(announced, bank, executed, government, inheritors, issuer, provider, Testament),
@@ -46,11 +54,7 @@ template TestamentFactory
       issuer : Text
      controller government
         do
-          optionalTestament <- lookupByKey @Testament (government, issuer)
-          testamentId <- case optionalTestament of
-              Some testamentId -> pure testamentId
-              None -> fail $ "Testament not found for " <> issuer
-          testament <- fetch testamentId
+          (testamentId, testament) <- fetchTestament (government, issuer)
 
           assertNotAnnounced testament
 
@@ -59,14 +63,52 @@ template TestamentFactory
             announced = True
             bank = Some bank
 
-    -- choice ExecuteTestament : ContractId Testament with
-    --   issuer : Text
-    --  controller bank
-    --     do
-    --       create this with
-    --         executed = True
+    nonconsuming choice ExecuteTestament : ContractId Testament with
+      issuer : Text
+     controller bank
+        do
+          (testamentId, testament) <- fetchTestament (government, issuer)
 
-    --       lookupByKey @Account
+          assertMsg "Should not be executed" $ not testament.executed
+
+          issuerAccountId <- lookupByKey @Account (bank, issuer)
+            <&> fromSomeNote ("Account not found for " <> show (bank, issuer)) 
+          issuerAccount <- fetch issuerAccountId
+
+          forA_ (M.toList testament.inheritors) \(id, share) ->
+            do
+              let
+                inherited = issuerAccount.posession * share / 10000
+
+              optionalAccountId <- lookupByKey @Account (bank, id)
+              inheritorPosession <- case optionalAccountId of
+                Some accountId -> fetch accountId <&> posession
+                None -> pure 0
+
+              case optionalAccountId of
+                Some accountId -> archive accountId
+                None -> pure ()
+
+              create Account with 
+                holder = id
+                posession = inheritorPosession + inherited
+                bank
+                government
+
+          archive issuerAccountId
+          void $ create issuerAccount with posession = 0
+
+          archive testamentId
+          create testament with executed = True
+
+
+fetchTestament : (Party, Text) -> Update (ContractId Testament, Testament)
+fetchTestament k = 
+  do
+    testamentId <- lookupByKey @Testament k 
+      <&> fromSomeNote ("Testament not found for " <> show k)      
+    testament <- fetch testamentId
+    return (testamentId, testament)
 
 
 template NewFactoryProposal 

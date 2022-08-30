@@ -9,14 +9,14 @@ import Test.Util (
   announceTestament, 
   TestParties(bank, government, TestParties),
  )
-import Test.Account.Util (createAccount, validAccount)
+import Test.Account.Util (createIssuerAccount, validAccount)
 
 
 _should_add_funds : Script ()
 _should_add_funds = do
   -- given
   TestParties { .. } <- allocateParties
-  account <- createAccount bank government
+  account <- createIssuerAccount bank government
 
   -- when
   updated <- submit bank do
@@ -33,7 +33,7 @@ _only_bank_should_add_funds : Script ()
 _only_bank_should_add_funds = do
   -- given
   TestParties { .. } <- allocateParties
-  account <- createAccount bank government
+  account <- createIssuerAccount bank government
 
   -- when
   submitMustFail government do
@@ -46,7 +46,7 @@ _should_not_add_funds_to_announced_account : Script ()
 _should_not_add_funds_to_announced_account = do
   -- given
   parties@(TestParties { .. }) <- allocateParties
-  account <- createAccount bank government
+  account <- createIssuerAccount bank government
   void $ announceTestament parties
 
   -- when
