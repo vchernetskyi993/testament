@@ -21,7 +21,7 @@ import Main.Testament (
   Testament(announced, bank, executed, government, inheritors, issuer, provider, Testament),
   validateInheritors,
  )
-import Main.Util (isNotBlank)
+import Main.Util (contains, isNotBlank)
 
 
 template TestamentFactory 
@@ -120,9 +120,9 @@ template NewFactoryProposal
     signatory provider
     observer government
 
-    ensure partyToText provider == "Provider"
-      && partyToText government == "Government"
-      && partyToText bank == "Bank"
+    ensure provider `contains` "Provider"
+      && government `contains` "Government"
+      && bank `contains` "Bank"
 
     choice CreateFactory : ContractId TestamentFactory
      controller government

@@ -1,4 +1,5 @@
 module Main.Util (
+  contains,
   isNotBlank,
 ) where
 
@@ -8,3 +9,8 @@ import DA.Text qualified as T
 
 isNotBlank : Text -> Bool
 isNotBlank = not . T.isEmpty . T.trim
+
+
+contains : Party -> Text -> Bool
+party `contains` name =
+  T.asciiToLower name `T.isInfixOf` T.asciiToLower (partyToText party)

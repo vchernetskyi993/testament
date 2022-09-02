@@ -15,13 +15,13 @@ while [ ! -d "/contracts/.daml/dist/" ]; do
   fi
 done
 
-cp /contracts/.daml/dist/*.dar contracts.dar 
+DARS=(/contracts/.daml/dist/*)
 
-echo "Starting $PARTY_NAME ledger node..."
+echo "Starting $PARTICIPANT_NAME ledger node..."
 
 exec /canton/bin/canton daemon \
-  -c /configs/features.conf,/configs/ledger-node.conf,/configs/government.conf \
-  -Dparty.name="$PARTY_NAME" \
-  -Duser="$PARTY_USER" \
-  -Ddar.path=contracts.dar \
+  -c /configs/features.conf,/configs/"$PARTICIPANT_NAME".conf \
+  -Dparticipant.name="$PARTICIPANT_NAME" \
+  -Dparticipant.user="$PARTICIPANT_USER" \
+  -Ddar.path="${DARS[0]}" \
   --bootstrap /scripts/participant.scala

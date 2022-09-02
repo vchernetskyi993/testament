@@ -7,7 +7,7 @@ module Main.Account (
 ) where
 
 import Main.Testament (assertNotAnnounced, Testament)
-import Main.Util (isNotBlank)
+import Main.Util (contains, isNotBlank)
 
 
 template Account 
@@ -53,8 +53,8 @@ template CreateAccount
     signatory bank
     observer government
 
-    ensure partyToText bank == "Bank"
-      && partyToText government == "Government"
+    ensure bank `contains` "Bank"
+      && government `contains` "Government"
       && isNotBlank holder
 
     choice SignAccountCreation : ContractId Account

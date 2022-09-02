@@ -9,15 +9,16 @@ utils.retry_until_true {
 }
 
 // create party
-val party = participant.parties.enable(sys.props.get("party.name").get)
+val party = participant.parties.list(sys.props.get("participant.name").get).head.party
 
 // create default user
 participant.ledger_api.users.create(
-  id = sys.props.get("user").get,
+  id = sys.props.get("participant.user").get,
   actAs = Set(party.toLf),
   primaryParty = Some(party.toLf),
   readAs = Set(party.toLf),
+  participantAdmin = true,
 )
 
 // upload contracts
-government.dars.upload(sys.props.get("dar.path").get)
+participant.dars.upload(sys.props.get("dar.path").get)

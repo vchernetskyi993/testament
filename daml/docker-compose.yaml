@@ -33,8 +33,8 @@ services:
       - "6001:6001"
     entrypoint: /scripts/start-ledger.sh
     environment:
-      - PARTY_NAME=Government
-      - PARTY_USER=govadmin
+      - PARTICIPANT_NAME=government
+      - PARTICIPANT_USER=govadmin
       - JWKS_URL=http://auth.gov:8080/jwks
     volumes:
       - ./network/configs:/configs
@@ -72,5 +72,56 @@ services:
     environment:
       - PARTICIPANT_USER=govadmin
       - PARTICIPANT_PASSWORD=govadminpassword
+    networks:
+      - local
+
+  # TODO: setup nginx.gov
+
+  ledger.provider:
+    image: digitalasset/canton-open-source:2.3.3
+    ports:
+      - "6002:6000"
+      - "6003:6001"
+    entrypoint: /scripts/start-ledger.sh
+    environment:
+      - PARTICIPANT_NAME=provider
+      - PARTICIPANT_USER=provider
+      - JWKS_URL=http://auth.provider:8080/jwks
+    volumes:
+      - ./network/configs:/configs
+      - ./network/scripts:/scripts
+      - ./contracts/:/contracts
+    networks:
+      - local
+    depends_on:
+      - domain
+      - contract-builder
+
+  json.provider:
+    build: 
+      context: ./network
+      dockerfile: Dockerfile.json
+    image: daml/json-api
+    ports:
+      - "7576:7575"
+    environment:
+      - LEDGER_HOST=ledger.provider
+      - LEDGER_PORT=6000
+    volumes:
+      - ./network/configs:/configs
+    networks:
+      - local
+    depends_on:
+      - ledger.provider
+
+  auth.provider:
+    build: 
+      context: ./auth-server
+    image: daml/auth-server
+    ports:
+      - "8081:8080"
+    environment:
+      - PARTICIPANT_USER=provider
+      - PARTICIPANT_PASSWORD=providerpassword
     networks:
       - local
