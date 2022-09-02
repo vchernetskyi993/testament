@@ -34,11 +34,12 @@ services:
     entrypoint: /scripts/start-ledger.sh
     environment:
       - PARTY_NAME=Government
-      - USER=govadmin
+      - PARTY_USER=govadmin
+      - JWKS_URL=http://auth.gov:8080/jwks
     volumes:
       - ./network/configs:/configs
       - ./network/scripts:/scripts
-      - ./contracts/.daml/dist:/dars
+      - ./contracts/:/contracts
     networks:
       - local
     depends_on:
@@ -61,3 +62,15 @@ services:
       - local
     depends_on:
       - ledger.gov
+
+  auth.gov:
+    build: 
+      context: ./auth-server
+    image: daml/auth-server
+    ports:
+      - "8080:8080"
+    environment:
+      - PARTICIPANT_USER=govadmin
+      - PARTICIPANT_PASSWORD=govadminpassword
+    networks:
+      - local
