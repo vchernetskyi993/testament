@@ -5,16 +5,35 @@ networks:
     name: testament_daml
 
 services:
+  postgres:
+    image: postgres:14.5
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    shm_size: 256mb
+    volumes:
+      - ./network/scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    networks:
+      - local
+
   domain:
     image: digitalasset/canton-open-source:2.3.3
     ports:
       - "5000:5000"
       - "5001:5001"
     command: daemon -c /configs/domain.conf
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=domain
+      - POSTGRES_DB=domain
+      - POSTGRES_PASSWORD=domain
     volumes:
       - ./network/configs:/configs
     networks:
       - local
+    depends_on:
+      - postgres
 
   contract-builder:
     image: digitalasset/daml-sdk:2.3.2
@@ -36,6 +55,10 @@ services:
       - PARTICIPANT_NAME=government
       - PARTICIPANT_USER=govadmin
       - JWKS_URL=http://auth.gov:8080/jwks
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=government
+      - POSTGRES_DB=government
+      - POSTGRES_PASSWORD=government
     volumes:
       - ./network/configs:/configs
       - ./network/scripts:/scripts
@@ -87,6 +110,10 @@ services:
       - PARTICIPANT_NAME=provider
       - PARTICIPANT_USER=provider
       - JWKS_URL=http://auth.provider:8080/jwks
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=provider
+      - POSTGRES_DB=provider
+      - POSTGRES_PASSWORD=provider
     volumes:
       - ./network/configs:/configs
       - ./network/scripts:/scripts
@@ -125,3 +152,5 @@ services:
       - PARTICIPANT_PASSWORD=providerpassword
     networks:
       - local
+
+  # TODO: initialize testament factory
