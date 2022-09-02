@@ -153,4 +153,10 @@ services:
     networks:
       - local
 
+  # TODO: start provider gateway
+
+  # TODO: add bank nodes
+
+  # TODO: start bank gateway
+
   # TODO: initialize testament factory

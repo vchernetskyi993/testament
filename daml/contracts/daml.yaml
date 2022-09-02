@@ -4,14 +4,17 @@
 sdk-version: 2.3.2
 name: contracts
 source: daml
-# init-script: Main:setup
 version: 0.1.0
 dependencies:
   - daml-prim
   - daml-stdlib
   - daml-script
+start-navigator: false
 build-options: 
   ["--ghc-option", "-Weverything",
    "--ghc-option", "-Wno-missing-deriving-strategies",
    "--ghc-option", "-Wno-unsafe",
    "--ghc-option", "-Wno-implicit-prelude"]
+codegen:
+  js:
+    output-directory: .daml/js
