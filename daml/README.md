@@ -25,7 +25,7 @@ Repo consists of 6 directories:
 Docker compose configuration is provided. 
 So, to start all services issue `docker compose up`. Batteries included.
 
-## Used development resources:
+## Used development resources
 
 ### Common
 
@@ -33,7 +33,7 @@ https://github.com/digital-asset/ex-secure-daml-infra
 
 ---
 
-#### Auth server
+### Auth server
 
 https://connect2id.com/products/nimbus-jose-jwt
 https://docs.daml.com/canton/usermanual/static_conf.html#jwt-authorization
@@ -41,13 +41,13 @@ https://docs.daml.com/tools/sandbox.html#run-with-authorization
 https://docs.daml.com/app-dev/authorization.html#user-access-tokens
 
 
-#### Canton (domain+nodes)
+### Canton (domain+nodes)
 
 https://docs.daml.com/canton/tutorials/getting_started.html
 https://docs.daml.com/canton/usermanual/docker.html
 https://hub.docker.com/r/digitalasset/canton-open-source
 
-#### JSON-RPC
+### JSON-RPC
 
 https://hub.docker.com/r/digitalasset/daml-sdk
 
