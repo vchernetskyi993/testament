@@ -24,9 +24,9 @@ private val signer = RSASSASigner(jwk)
 
 val jwks = JWKSet(jwk)
 
-fun jwt(settings: NodeSettings): String {
+fun jwt(settings: Credentials): String {
     val claimsSet = JWTClaimsSet.Builder()
-        .audience(settings.node)
+        .audience(settings.participant)
         .subject(settings.user)
         .claim("scope", "daml_ledger_api")
         .expirationTime(Date.from(Instant.now().plus(Duration.ofMinutes(5))))
