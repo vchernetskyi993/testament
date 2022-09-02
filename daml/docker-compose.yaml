@@ -1,0 +1,63 @@
+version: "3.9"
+
+networks:
+  local:
+    name: testament_daml
+
+services:
+  domain:
+    image: digitalasset/canton-open-source:2.3.3
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    command: daemon -c /configs/domain.conf
+    volumes:
+      - ./network/configs:/configs
+    networks:
+      - local
+
+  contract-builder:
+    image: digitalasset/daml-sdk:2.3.2
+    user: root
+    command: /scripts/build.sh
+    environment:
+      - WORKDIR=/home/daml/contracts
+    volumes:
+      - ./contracts:/home/daml/contracts
+      - ./network/scripts:/scripts
+
+  ledger.gov:
+    image: digitalasset/canton-open-source:2.3.3
+    ports:
+      - "6000:6000"
+      - "6001:6001"
+    entrypoint: /scripts/start-ledger.sh
+    environment:
+      - PARTY_NAME=Government
+      - USER=govadmin
+    volumes:
+      - ./network/configs:/configs
+      - ./network/scripts:/scripts
+      - ./contracts/.daml/dist:/dars
+    networks:
+      - local
+    depends_on:
+      - domain
+      - contract-builder
+
+  json.gov:
+    build: 
+      context: ./network
+      dockerfile: Dockerfile.json
+    image: daml/json-api
+    ports:
+      - "7575:7575"
+    environment:
+      - LEDGER_HOST=ledger.gov
+      - LEDGER_PORT=6000
+    volumes:
+      - ./network/configs:/configs
+    networks:
+      - local
+    depends_on:
+      - ledger.gov
