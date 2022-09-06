@@ -236,4 +236,26 @@ services:
 
   # TODO: start bank gateway
 
-  # TODO: initialize testament factory
+  create-factory:
+    build: 
+      context: ./network
+      dockerfile: Dockerfile.python
+    image: daml/python
+    environment:
+      - PROVIDER_USER=provider
+      - PROVIDER_PASSWORD=providerpassword
+      - GOV_USER=govadmin
+      - GOV_PASSWORD=govadminpassword
+      - RESULT_PATH=/data/factory.json
+    command: python -u /scripts/create-factory.py
+    volumes:
+      - ./.network-data/:/data
+      - ./network/scripts/:/scripts
+    networks:
+      - local
+    depends_on:
+      - json.bank
+      - json.gov
+      - json.provider
+      - auth.gov
+      - auth.provider
