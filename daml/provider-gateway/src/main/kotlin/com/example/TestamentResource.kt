@@ -1,22 +1,28 @@
 package com.example
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import javax.ws.rs.DELETE
 import javax.ws.rs.GET
+import javax.ws.rs.POST
 import javax.ws.rs.PUT
 import javax.ws.rs.Path
 
-@Path("/testaments/{issuer}")
+@Path("/testaments")
 class TestamentResource(
-    val mapper: ObjectMapper,
+    val service: TestamentService,
 ) {
+    @POST
+    suspend fun issueTestament(testament: Testament) = service.issueTestament(testament)
+
     @GET
-    fun fetchTestament(issuer: String) = "Retrieving testament for $issuer"
+    @Path("/{issuer}")
+    suspend fun fetchTestament(issuer: String) = service.fetchTestament(issuer)
 
     @PUT
-    fun updateTestament(issuer: String, inheritors: Map<String, Int>) =
-        "Updating inheritors for $issuer with ${mapper.writeValueAsString(inheritors)}"
+    @Path("/{issuer}")
+    suspend fun updateTestament(issuer: String, inheritors: Map<String, Int>) =
+        service.updateTestament(issuer, inheritors)
 
     @DELETE
-    fun revokeTestament(issuer: String) = "Revoking testament of $issuer"
+    @Path("/{issuer}")
+    suspend fun revokeTestament(issuer: String) = service.revokeTestament(issuer)
 }
