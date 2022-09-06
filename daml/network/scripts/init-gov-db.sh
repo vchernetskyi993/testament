@@ -12,8 +12,4 @@ PGPASSWORD="$POSTGRES_PASSWORD" psql \
   CREATE USER government WITH ENCRYPTED PASSWORD 'government';
 	CREATE DATABASE government;
 	GRANT ALL ON DATABASE government TO government;
-
-	CREATE USER provider WITH ENCRYPTED PASSWORD 'provider';
-	CREATE DATABASE provider;
-	GRANT ALL ON DATABASE provider TO provider;
 EOSQL

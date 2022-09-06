@@ -5,7 +5,7 @@ networks:
     name: testament_daml
 
 services:
-  postgres:
+  postgres.gov:
     image: postgres:14.5
     ports:
       - "5432:5432"
@@ -13,7 +13,7 @@ services:
       - POSTGRES_PASSWORD=postgres
     shm_size: 256mb
     volumes:
-      - ./network/scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./network/scripts/init-gov-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     networks:
       - local
 
@@ -24,7 +24,7 @@ services:
       - "5001:5001"
     command: daemon -c /configs/domain.conf
     environment:
-      - POSTGRES_HOST=postgres
+      - POSTGRES_HOST=postgres.gov
       - POSTGRES_USER=domain
       - POSTGRES_DB=domain
       - POSTGRES_PASSWORD=domain
@@ -33,7 +33,7 @@ services:
     networks:
       - local
     depends_on:
-      - postgres
+      - postgres.gov
 
   contract-builder:
     image: digitalasset/daml-sdk:2.3.2
@@ -55,7 +55,7 @@ services:
       - PARTICIPANT_NAME=government
       - PARTICIPANT_USER=govadmin
       - JWKS_URL=http://auth.gov:8080/jwks
-      - POSTGRES_HOST=postgres
+      - POSTGRES_HOST=postgres.gov
       - POSTGRES_USER=government
       - POSTGRES_DB=government
       - POSTGRES_PASSWORD=government
@@ -100,6 +100,18 @@ services:
 
   # TODO: setup nginx.gov
 
+  postgres.provider:
+    image: postgres:14.5
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=provider
+      - POSTGRES_USER=provider
+      - POSTGRES_PASSWORD=provider
+    shm_size: 256mb
+    networks:
+      - local
+
   ledger.provider:
     image: digitalasset/canton-open-source:2.3.3
     ports:
@@ -110,7 +122,7 @@ services:
       - PARTICIPANT_NAME=provider
       - PARTICIPANT_USER=provider
       - JWKS_URL=http://auth.provider:8080/jwks
-      - POSTGRES_HOST=postgres
+      - POSTGRES_HOST=postgres.provider
       - POSTGRES_USER=provider
       - POSTGRES_DB=provider
       - POSTGRES_PASSWORD=provider
@@ -121,6 +133,7 @@ services:
     networks:
       - local
     depends_on:
+      - postgres.provider
       - domain
       - contract-builder
 
@@ -155,7 +168,71 @@ services:
 
   # TODO: start provider gateway
 
-  # TODO: add bank nodes
+  postgres.bank:
+    image: postgres:14.5
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_DB=bank
+      - POSTGRES_USER=bank
+      - POSTGRES_PASSWORD=bank
+    shm_size: 256mb
+    networks:
+      - local
+
+  ledger.bank:
+    image: digitalasset/canton-open-source:2.3.3
+    ports:
+      - "6004:6000"
+      - "6005:6001"
+    entrypoint: /scripts/start-ledger.sh
+    environment:
+      - PARTICIPANT_NAME=bank
+      - PARTICIPANT_USER=bankadmin
+      - JWKS_URL=http://auth.bank:8080/jwks
+      - POSTGRES_HOST=postgres.bank
+      - POSTGRES_USER=bank
+      - POSTGRES_DB=bank
+      - POSTGRES_PASSWORD=bank
+    volumes:
+      - ./network/configs:/configs
+      - ./network/scripts:/scripts
+      - ./contracts/:/contracts
+    networks:
+      - local
+    depends_on:
+      - postgres.bank
+      - domain
+      - contract-builder
+
+  json.bank:
+    build: 
+      context: ./network
+      dockerfile: Dockerfile.json
+    image: daml/json-api
+    ports:
+      - "7577:7575"
+    environment:
+      - LEDGER_HOST=ledger.bank
+      - LEDGER_PORT=6000
+    volumes:
+      - ./network/configs:/configs
+    networks:
+      - local
+    depends_on:
+      - ledger.bank
+
+  auth.bank:
+    build: 
+      context: ./auth-server
+    image: daml/auth-server
+    ports:
+      - "8082:8080"
+    environment:
+      - PARTICIPANT_USER=bankadmin
+      - PARTICIPANT_PASSWORD=bankadminpassword
+    networks:
+      - local
 
   # TODO: start bank gateway
 
