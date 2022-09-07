@@ -6,12 +6,19 @@ import javax.ws.rs.POST
 import javax.ws.rs.PUT
 import javax.ws.rs.Path
 
+data class TestamentDto(
+    val issuer: String,
+    val inheritors: Map<String, Int>,
+    val announced: Boolean = false,
+    val executed: Boolean = false,
+)
+
 @Path("/testaments")
 class TestamentResource(
     val service: TestamentService,
 ) {
     @POST
-    suspend fun issueTestament(testament: Testament) = service.issueTestament(testament)
+    suspend fun issueTestament(testament: TestamentDto) = service.issueTestament(testament)
 
     @GET
     @Path("/{issuer}")

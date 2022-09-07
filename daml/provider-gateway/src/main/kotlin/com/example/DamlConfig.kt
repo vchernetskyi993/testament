@@ -9,6 +9,14 @@ import javax.enterprise.inject.Produces
 import javax.inject.Singleton
 
 
+@ConfigMapping(prefix = "daml")
+interface DamlProperties {
+    fun appId(): String
+    fun party(): String
+    fun factoryId(): String
+    fun government(): String
+}
+
 @ConfigMapping(prefix = "daml.ledger")
 interface LedgerProperties {
     fun host(): String

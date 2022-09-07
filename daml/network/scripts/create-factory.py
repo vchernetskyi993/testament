@@ -103,6 +103,8 @@ def retrieve_token(host: str, username: str, password: str) -> str:
 
 
 if __name__ == "__main__":
+    # TODO: if file exists & is valid skip creation
+    # TODO: save parties to factory json
     factory_id = create_factory(
         FactoryConfig(
             provider_user=environ["PROVIDER_USER"],
