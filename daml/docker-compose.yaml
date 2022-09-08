@@ -314,13 +314,15 @@ services:
       context: ./network
       dockerfile: Dockerfile.python
     image: daml/python
-    environment:
-      - PROVIDER_USER=provider
-      - PROVIDER_PASSWORD=providerpassword
-      - GOV_USER=govadmin
-      - GOV_PASSWORD=govadminpassword
-      - RESULT_PATH=/data/factory.json
-    command: python -u /scripts/create-factory.py
+    command: "
+      python -u /scripts/create-factory.py 
+        --output /data/factory.json
+        --provider-user provider
+        --provider-password providerpassword
+        --gov-user govadmin
+        --gov-password govadminpassword
+        --bank-user bankadmin
+        --bank-password bankadminpassword"
     volumes:
       - data:/data
       - ./network/scripts/:/scripts
