@@ -334,6 +334,7 @@ services:
       - json.provider
       - auth.gov
       - auth.provider
+      - auth.bank
 
 volumes:
   data:

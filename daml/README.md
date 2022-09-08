@@ -29,11 +29,11 @@ So, to start all services issue `docker compose up`. Batteries included.
 
 ### Government
 
-https://www.npmjs.com/package/@daml/react
+https://www.npmjs.com/package/@daml/react  
 https://docs.daml.com/app-dev/bindings-ts/daml2js.html
 
 
 #### Nginx
 
-https://hub.docker.com/_/nginx
+https://hub.docker.com/_/nginx  
 http://nginx.org/en/docs/beginners_guide.html#conf_structure
