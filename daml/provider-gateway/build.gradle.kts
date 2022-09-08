@@ -48,9 +48,10 @@ allOpen {
     annotation("io.quarkus.test.junit.QuarkusTest")
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+tasks.compileKotlin {
     kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
     kotlinOptions.javaParameters = true
+    dependsOn("damlBindings")
 }
 
 task<Exec>("damlBindings") {
@@ -63,8 +64,4 @@ sourceSets {
             srcDirs("build/generated/source/daml/main/java")
         }
     }
-}
-
-tasks.compileKotlin {
-    dependsOn("damlBindings")
 }
