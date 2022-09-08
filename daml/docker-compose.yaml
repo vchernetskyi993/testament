@@ -5,17 +5,39 @@ networks:
     name: testament_daml
 
 services:
+  prepare-sql.gov:
+    build: 
+      context: ./network
+      dockerfile: Dockerfile.python
+    image: daml/python
+    command: sh -c "cd /scripts && 
+      python 
+        -u generate-init-db-script.py 
+        --output /data/init-gov-db.sh 
+        --database domain 
+        --database government_ledger
+        --database government_json"
+    volumes:
+      - data:/data
+      - ./network/scripts/:/scripts
+    networks:
+      - local
+
   postgres.gov:
     image: postgres:14.5
     ports:
       - "5432:5432"
     environment:
       - POSTGRES_PASSWORD=postgres
+      - SCRIPT_FILE=init-gov-db.sh
     shm_size: 256mb
     volumes:
-      - ./network/scripts/init-gov-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./network/scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - data:/data
     networks:
       - local
+    depends_on:
+      - prepare-sql.gov
 
   domain:
     image: digitalasset/canton-open-source:2.3.3
@@ -40,9 +62,9 @@ services:
     user: root
     command: /scripts/build.sh
     environment:
-      - WORKDIR=/home/daml/contracts
+      - WORKDIR=/contracts
     volumes:
-      - ./contracts:/home/daml/contracts
+      - ./contracts:/contracts
       - ./network/scripts:/scripts
 
   ledger.gov:
@@ -56,9 +78,9 @@ services:
       - PARTICIPANT_USER=govadmin
       - JWKS_URL=http://auth.gov:8080/jwks
       - POSTGRES_HOST=postgres.gov
-      - POSTGRES_USER=government
-      - POSTGRES_DB=government
-      - POSTGRES_PASSWORD=government
+      - POSTGRES_USER=government_ledger
+      - POSTGRES_DB=government_ledger
+      - POSTGRES_PASSWORD=government_ledger
     volumes:
       - ./network/configs:/configs
       - ./network/scripts:/scripts
@@ -79,6 +101,9 @@ services:
     environment:
       - LEDGER_HOST=ledger.gov
       - LEDGER_PORT=6000
+      - DB_USER=government_json
+      - DB_PASSWORD=government_json
+      - DB_URL=jdbc:postgresql://postgres.gov:5432/government_json
     volumes:
       - ./network/configs:/configs
     networks:
@@ -100,17 +125,38 @@ services:
 
   # TODO: setup nginx.gov
 
+  prepare-sql.provider:
+    build: 
+      context: ./network
+      dockerfile: Dockerfile.python
+    image: daml/python
+    command: sh -c "cd /scripts && 
+      python 
+        -u generate-init-db-script.py 
+        --output /data/init-provider-db.sh 
+        --database provider_ledger
+        --database provider_json"
+    volumes:
+      - data:/data
+      - ./network/scripts/:/scripts
+    networks:
+      - local
+
   postgres.provider:
     image: postgres:14.5
     ports:
       - "5433:5432"
     environment:
-      - POSTGRES_DB=provider
-      - POSTGRES_USER=provider
-      - POSTGRES_PASSWORD=provider
+      - POSTGRES_PASSWORD=postgres
+      - SCRIPT_FILE=init-provider-db.sh
     shm_size: 256mb
+    volumes:
+      - ./network/scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - data:/data
     networks:
       - local
+    depends_on:
+      - prepare-sql.provider
 
   ledger.provider:
     image: digitalasset/canton-open-source:2.3.3
@@ -123,9 +169,9 @@ services:
       - PARTICIPANT_USER=provider
       - JWKS_URL=http://auth.provider:8080/jwks
       - POSTGRES_HOST=postgres.provider
-      - POSTGRES_USER=provider
-      - POSTGRES_DB=provider
-      - POSTGRES_PASSWORD=provider
+      - POSTGRES_USER=provider_ledger
+      - POSTGRES_DB=provider_ledger
+      - POSTGRES_PASSWORD=provider_ledger
     volumes:
       - ./network/configs:/configs
       - ./network/scripts:/scripts
@@ -147,6 +193,9 @@ services:
     environment:
       - LEDGER_HOST=ledger.provider
       - LEDGER_PORT=6000
+      - DB_USER=provider_json
+      - DB_PASSWORD=provider_json
+      - DB_URL=jdbc:postgresql://postgres.provider:5432/provider_json
     volumes:
       - ./network/configs:/configs
     networks:
@@ -168,17 +217,38 @@ services:
 
   # TODO: start provider gateway
 
+  prepare-sql.bank:
+    build: 
+      context: ./network
+      dockerfile: Dockerfile.python
+    image: daml/python
+    command: sh -c "cd /scripts && 
+      python 
+        -u generate-init-db-script.py 
+        --output /data/init-bank-db.sh 
+        --database bank_ledger
+        --database bank_json"
+    volumes:
+      - data:/data
+      - ./network/scripts/:/scripts
+    networks:
+      - local
+
   postgres.bank:
     image: postgres:14.5
     ports:
       - "5434:5432"
     environment:
-      - POSTGRES_DB=bank
-      - POSTGRES_USER=bank
-      - POSTGRES_PASSWORD=bank
+      - POSTGRES_PASSWORD=postgres
+      - SCRIPT_FILE=init-bank-db.sh
     shm_size: 256mb
+    volumes:
+      - ./network/scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - data:/data
     networks:
       - local
+    depends_on:
+      - prepare-sql.bank
 
   ledger.bank:
     image: digitalasset/canton-open-source:2.3.3
@@ -191,9 +261,9 @@ services:
       - PARTICIPANT_USER=bankadmin
       - JWKS_URL=http://auth.bank:8080/jwks
       - POSTGRES_HOST=postgres.bank
-      - POSTGRES_USER=bank
-      - POSTGRES_DB=bank
-      - POSTGRES_PASSWORD=bank
+      - POSTGRES_USER=bank_ledger
+      - POSTGRES_DB=bank_ledger
+      - POSTGRES_PASSWORD=bank_ledger
     volumes:
       - ./network/configs:/configs
       - ./network/scripts:/scripts
@@ -215,6 +285,9 @@ services:
     environment:
       - LEDGER_HOST=ledger.bank
       - LEDGER_PORT=6000
+      - DB_USER=bank_json
+      - DB_PASSWORD=bank_json
+      - DB_URL=jdbc:postgresql://postgres.bank:5432/bank_json
     volumes:
       - ./network/configs:/configs
     networks:
@@ -249,7 +322,7 @@ services:
       - RESULT_PATH=/data/factory.json
     command: python -u /scripts/create-factory.py
     volumes:
-      - ./.network-data/:/data
+      - data:/data
       - ./network/scripts/:/scripts
     networks:
       - local
@@ -259,3 +332,6 @@ services:
       - json.provider
       - auth.gov
       - auth.provider
+
+volumes:
+  data:

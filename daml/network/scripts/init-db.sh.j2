@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+PGPASSWORD="$POSTGRES_PASSWORD" psql \
+  -v ON_ERROR_STOP=1 \
+  -U "$POSTGRES_USER" \
+  <<-EOSQL
+  {% for statement in statements -%}
+    {{ statement }}
+  {%- endfor %}
+EOSQL

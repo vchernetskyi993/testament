@@ -57,7 +57,7 @@ def create_factory(config: FactoryConfig) -> str:
 
 
 def fetch_parties(jwt: str) -> dict:
-    retries = 10
+    retries = 20
     attempt = 0
     while attempt != retries:
         try:
