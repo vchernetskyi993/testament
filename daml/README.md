@@ -13,45 +13,19 @@ Network consists of 3 organizations:
 
 Repo consists of 6 directories:
 
-* auth-server - sample Ktor server for providing valid JWS/JWKS
-* bank-gateway - JSON-RPC Node gateway to network for bank services
-* contracts - Daml templates
-* gov-app - governmental React application
-* network - files required to run docker compose network
-* provider-gateway - REST Quarkus gateway to network for provider services
+* [auth-server](./auth-server/) - sample Ktor server for providing valid JWS/JWKS
+* [bank-gateway](./bank-gateway) - JSON-RPC Node gateway to network for bank services
+* [contracts](./contracts/) - Daml templates
+* [gov-app](./gov-app) - governmental React application
+* [network](./network/) - files required to run docker compose network
+* [provider-gateway](./provider-gateway/) - REST Quarkus gateway to network for provider services
 
 ## Local deployment
 
 Docker compose configuration is provided. 
 So, to start all services issue `docker compose up`. Batteries included.
 
-## Used development resources
-
-### Common
-
-https://github.com/digital-asset/ex-secure-daml-infra
-
----
-
-### Auth server
-
-https://connect2id.com/products/nimbus-jose-jwt
-https://docs.daml.com/canton/usermanual/static_conf.html#jwt-authorization
-https://docs.daml.com/tools/sandbox.html#run-with-authorization
-https://docs.daml.com/app-dev/authorization.html#user-access-tokens
-
-
-### Canton (domain+nodes)
-
-https://docs.daml.com/canton/tutorials/getting_started.html
-https://docs.daml.com/canton/usermanual/docker.html
-https://hub.docker.com/r/digitalasset/canton-open-source
-
-### JSON-RPC
-
-https://hub.docker.com/r/digitalasset/daml-sdk
-
----
+## Development resources
 
 ### Government
 
