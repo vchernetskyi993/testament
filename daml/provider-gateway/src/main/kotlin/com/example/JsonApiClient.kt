@@ -45,7 +45,7 @@ object InheritorsDeserializer : JsonDeserializer<List<Pair<String, Int>>>() {
         ctxt: DeserializationContext,
     ): List<Pair<String, Int>> =
         p.readValueAsTree<ArrayNode>()
-            .map { Pair(it[0].asText(), it[1].asInt()) }
+            .map { it[0].asText() to it[1].asInt() }
 }
 
 @RegisterRestClient(configKey = "json")

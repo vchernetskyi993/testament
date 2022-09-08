@@ -29,6 +29,9 @@ dependencies {
 
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
+    testImplementation("com.github.tomakehurst:wiremock-jre8:2.33.2")
+    testImplementation("com.jayway.jsonpath:json-path-assert:2.7.0")
+    testImplementation("org.grpcmock:grpcmock-core:0.7.9")
 }
 
 group = "com.example"
@@ -50,10 +53,18 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions.javaParameters = true
 }
 
+task<Exec>("damlBindings") {
+    commandLine("./codegen.sh")
+}
+
 sourceSets {
     main {
         java {
             srcDirs("build/generated/source/daml/main/java")
         }
     }
+}
+
+tasks.compileKotlin {
+    dependsOn("damlBindings")
 }
