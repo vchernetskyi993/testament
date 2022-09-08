@@ -1,10 +1,7 @@
 package com.example
 
 import com.example.util.GrpcMockExtension
-import com.example.util.InjectGrpcMock
-import com.example.util.InjectWireMock
 import com.example.util.WireMockExtension
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.jayway.jsonpath.matchers.JsonPathMatchers.isJson
 import com.jayway.jsonpath.matchers.JsonPathMatchers.withJsonPath
 import io.quarkus.test.common.QuarkusTestResource
@@ -12,7 +9,6 @@ import io.quarkus.test.junit.QuarkusTest
 import io.quarkus.test.junit.QuarkusTestProfile
 import io.quarkus.test.junit.TestProfile
 import io.restassured.RestAssured.given
-import org.grpcmock.GrpcMock
 import org.hamcrest.Matchers.allOf
 import org.hamcrest.Matchers.`is`
 import org.junit.jupiter.api.Test
@@ -39,11 +35,6 @@ class TestamentResourceTest {
         )
     }
 
-    @InjectWireMock
-    lateinit var wireMockServer: WireMockServer
-
-    @InjectGrpcMock
-    lateinit var grpcMock: GrpcMock
 
     @Test
     fun `Should fetch testament`() {

@@ -1,14 +1,13 @@
 package com.example.util
 
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager.TestInjector
 
-annotation class InjectWireMock
 
 class WireMockExtension : QuarkusTestResourceLifecycleManager {
     companion object {
@@ -22,7 +21,9 @@ class WireMockExtension : QuarkusTestResourceLifecycleManager {
     override fun start(): Map<String, String> {
         wireMockServer.start()
 
-        wireMockServer.stubFor(
+        WireMock.configureFor(wireMockServer.port())
+
+        WireMock.stubFor(
             post("/authenticate")
                 .withRequestBody(
                     equalToJson("{\"user\":\"$USERNAME\",\"password\":\"$PASSWORD\"}")
@@ -42,15 +43,5 @@ class WireMockExtension : QuarkusTestResourceLifecycleManager {
 
     override fun stop() {
         wireMockServer.stop()
-    }
-
-    override fun inject(testInjector: TestInjector) {
-        testInjector.injectIntoFields(
-            wireMockServer,
-            TestInjector.AnnotatedAndMatchesType(
-                InjectWireMock::class.java,
-                WireMockServer::class.java
-            )
-        )
     }
 }
