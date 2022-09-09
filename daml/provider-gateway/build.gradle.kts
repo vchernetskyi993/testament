@@ -32,6 +32,7 @@ dependencies {
     testImplementation("com.github.tomakehurst:wiremock-jre8:2.33.2")
     testImplementation("com.jayway.jsonpath:json-path-assert:2.7.0")
     testImplementation("org.grpcmock:grpcmock-core:0.7.9")
+    testImplementation("io.kotest:kotest-assertions-core:5.4.2")
 }
 
 group = "com.example"
