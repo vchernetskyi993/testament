@@ -1,7 +1,17 @@
 package com.example
 
 import com.example.util.GrpcMockExtension
+import com.example.util.InjectGrpcMock
+import com.example.util.InjectWireMock
 import com.example.util.WireMockExtension
+import com.example.util.WireMockExtension.Companion.AUTH_TOKEN
+import com.example.util.mockAuth
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
+import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
+import com.github.tomakehurst.wiremock.client.WireMock.okJson
+import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.jayway.jsonpath.matchers.JsonPathMatchers.isJson
 import com.jayway.jsonpath.matchers.JsonPathMatchers.withJsonPath
 import io.quarkus.test.common.QuarkusTestResource
@@ -9,15 +19,18 @@ import io.quarkus.test.junit.QuarkusTest
 import io.quarkus.test.junit.QuarkusTestProfile
 import io.quarkus.test.junit.TestProfile
 import io.restassured.RestAssured.given
+import org.grpcmock.GrpcMock
 import org.hamcrest.Matchers.allOf
 import org.hamcrest.Matchers.`is`
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
 @QuarkusTest
 @TestProfile(TestamentResourceTest.Profile::class)
-@QuarkusTestResource(WireMockExtension::class, parallel = true)
-@QuarkusTestResource(GrpcMockExtension::class, parallel = true)
+@QuarkusTestResource(WireMockExtension::class)
+@QuarkusTestResource(GrpcMockExtension::class)
 class TestamentResourceTest {
     companion object {
         private const val APP_ID = "test-app-id"
@@ -35,12 +48,52 @@ class TestamentResourceTest {
         )
     }
 
+    @InjectGrpcMock
+    lateinit var grpcMock: GrpcMock
+
+    @InjectWireMock
+    lateinit var wireMockServer: WireMockServer
+
+    @BeforeAll
+    fun beforeAll() {
+        GrpcMock.configureFor(grpcMock.port)
+        WireMock.configureFor(wireMockServer.port())
+    }
+
+    @BeforeEach
+    fun beforeEach() {
+        GrpcMock.resetMappings()
+        WireMock.reset()
+        mockAuth()
+    }
 
     @Test
     fun `Should fetch testament`() {
         val issuer = UUID.randomUUID().toString()
         val firstInheritor = UUID.randomUUID().toString() to 4500
         val secondInheritor = UUID.randomUUID().toString() to 5500
+        WireMock.stubFor(
+            post("/fetch")
+                .withHeader("Authorization", equalTo("Bearer $AUTH_TOKEN"))
+                .withRequestBody(matchingJsonPath("$.key._1", equalTo(GOVERNMENT)))
+                .withRequestBody(matchingJsonPath("$.key._2", equalTo(issuer)))
+                .willReturn(
+                    okJson(
+                        """{
+                       |"result": {
+                       |  "payload": {
+                       |    "issuer": "$issuer",
+                       |    "inheritors": [
+                       |      ["${firstInheritor.first}", ${firstInheritor.second}], 
+                       |      ["${secondInheritor.first}", ${secondInheritor.second}]
+                       |    ],
+                       |    "announced": true
+                       |  }
+                       |}
+                       |}""".trimMargin()
+                    )
+                )
+        )
 
         given()
             .pathParam("issuer", issuer)
@@ -68,6 +121,11 @@ class TestamentResourceTest {
 
     @Test
     fun `Should return not found for non-existing testament`() {
+        given()
+            .pathParam("issuer", UUID.randomUUID().toString())
+            .`when`().get("/testaments/{issuer}")
+            .then()
+            .statusCode(404)
     }
 
     @Test
