@@ -33,6 +33,7 @@ class ExecutionExceptionHandler : ExceptionMapper<ExecutionException> {
             is StatusRuntimeException -> {
                 val status = when (cause.status) {
                     Status.ALREADY_EXISTS -> StatusCode.BAD_REQUEST
+                    Status.NOT_FOUND -> StatusCode.NOT_FOUND
                     else -> StatusCode.INTERNAL_SERVER_ERROR
                 }
                 return Response.status(status).build()

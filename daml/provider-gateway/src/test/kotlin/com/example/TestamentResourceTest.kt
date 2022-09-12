@@ -5,10 +5,13 @@ import com.daml.ledger.api.v1.CommandsOuterClass
 import com.daml.ledger.javaapi.data.DamlGenMap
 import com.daml.ledger.javaapi.data.DamlRecord
 import com.daml.ledger.javaapi.data.DamlRecord.Field
+import com.daml.ledger.javaapi.data.ExerciseByKeyCommand
 import com.daml.ledger.javaapi.data.ExerciseCommand
 import com.daml.ledger.javaapi.data.Int64
+import com.daml.ledger.javaapi.data.Party
 import com.daml.ledger.javaapi.data.Text
 import com.example.main.factory.TestamentFactory
+import com.example.main.testament.Testament
 import com.example.util.GrpcMockExtension
 import com.example.util.InjectGrpcMock
 import com.example.util.InjectWireMock
@@ -186,7 +189,7 @@ class TestamentResourceTest {
                             )
                         )
                     ),
-                )
+                ),
             ).toProtoCommand()
         )
     }
@@ -206,10 +209,66 @@ class TestamentResourceTest {
 
     @Test
     fun `Should update testament`() {
+        // given
+        val issuer = UUID.randomUUID().toString()
+        GrpcMock.stubFor(
+            unaryMethod(CommandServiceGrpc.getSubmitAndWaitMethod())
+                .willReturn(Empty.getDefaultInstance())
+        )
+
+        // when
+        updateTestament(issuer).statusCode(204)
+
+        // then
+        var command: CommandsOuterClass.Commands? = null
+        GrpcMock.verifyThat(
+            calledMethod(CommandServiceGrpc.getSubmitAndWaitMethod())
+                .withHeader("Authorization", "Bearer $AUTH_TOKEN")
+                .withRequest {
+                    command = it.commands
+                    true
+                },
+            times(1)
+        )
+        command?.applicationId shouldBe APP_ID
+        command?.party shouldBe PARTY
+        command?.commandsList?.shouldHaveSingleElement(
+            ExerciseByKeyCommand(
+                Testament.TEMPLATE_ID,
+                DamlRecord(
+                    Field("_1", Party(GOVERNMENT)),
+                    Field("_2", Text(issuer)),
+                ),
+                "UpdateInheritors",
+                DamlRecord(
+                    Field(
+                        "updatedInheritors", DamlGenMap.of(
+                            mapOf(
+                                Text(firstInheritor.first) to Int64(
+                                    firstInheritor.second.toLong()
+                                ),
+                                Text(secondInheritor.first) to Int64(
+                                    secondInheritor.second.toLong()
+                                ),
+                            )
+                        )
+                    )
+                ),
+            ).toProtoCommand()
+        )
     }
 
     @Test
     fun `Should return not found for non-existing testament on update`() {
+        // given
+        val issuer = UUID.randomUUID().toString()
+        GrpcMock.stubFor(
+            unaryMethod(CommandServiceGrpc.getSubmitAndWaitMethod())
+                .willReturn(Status.NOT_FOUND)
+        )
+
+        // when+then
+        updateTestament(issuer).statusCode(404)
     }
 
     @Test
@@ -241,5 +300,20 @@ class TestamentResourceTest {
             """.trimIndent()
             )
             .`when`().post("/testaments")
+            .then()
+
+    private fun updateTestament(issuer: String): ValidatableResponse =
+        given()
+            .header("Content-Type", "application/json")
+            .pathParam("issuer", issuer)
+            .body(
+                """
+                {
+                  "${firstInheritor.first}": ${firstInheritor.second},
+                  "${secondInheritor.first}": ${secondInheritor.second}
+                }
+            """.trimIndent()
+            )
+            .`when`().put("/testaments/{issuer}")
             .then()
 }

@@ -1,6 +1,7 @@
 package com.example
 
 import com.daml.ledger.rxjava.LedgerClient
+import com.example.da.types.Tuple2
 import com.example.main.factory.TestamentFactory
 import com.example.main.testament.Testament
 import kotlinx.coroutines.rx2.await
@@ -47,8 +48,19 @@ class TestamentService(
         } ?: throw NotFoundException()
     }
 
-    suspend fun updateTestament(issuer: String, inheritors: Map<String, Int>): Unit =
-        TODO()
+    suspend fun updateTestament(issuer: String, inheritors: Map<String, Int>) {
+        ledgerClient.commandClient.submitAndWait(
+            UUID.randomUUID().toString(),
+            props.appId(),
+            UUID.randomUUID().toString(),
+            props.party(),
+            listOf(
+                Testament.byKey(Tuple2(props.government(), issuer))
+                    .exerciseUpdateInheritors(inheritors.mapValues { (_, s) -> s.toLong() })
+            ),
+            auth.jwt(),
+        ).await()
+    }
 
     suspend fun revokeTestament(issuer: String): Unit = TODO()
 
