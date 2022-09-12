@@ -62,7 +62,18 @@ class TestamentService(
         ).await()
     }
 
-    suspend fun revokeTestament(issuer: String): Unit = TODO()
+    suspend fun revokeTestament(issuer: String) {
+        ledgerClient.commandClient.submitAndWait(
+            UUID.randomUUID().toString(),
+            props.appId(),
+            UUID.randomUUID().toString(),
+            props.party(),
+            listOf(
+                Testament.byKey(Tuple2(props.government(), issuer)).exerciseRevoke()
+            ),
+            auth.jwt(),
+        ).await()
+    }
 
     private fun testamentTemplateId(): String =
         "${Testament.TEMPLATE_ID.moduleName}:${Testament.TEMPLATE_ID.entityName}"

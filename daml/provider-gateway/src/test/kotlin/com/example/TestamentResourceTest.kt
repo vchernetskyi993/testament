@@ -273,10 +273,53 @@ class TestamentResourceTest {
 
     @Test
     fun `Should revoke testament`() {
+        // given
+        val issuer = UUID.randomUUID().toString()
+        GrpcMock.stubFor(
+            unaryMethod(CommandServiceGrpc.getSubmitAndWaitMethod())
+                .willReturn(Empty.getDefaultInstance())
+        )
+
+        // when
+        revokeTestament(issuer).statusCode(204)
+
+        // then
+        var command: CommandsOuterClass.Commands? = null
+        GrpcMock.verifyThat(
+            calledMethod(CommandServiceGrpc.getSubmitAndWaitMethod())
+                .withHeader("Authorization", "Bearer $AUTH_TOKEN")
+                .withRequest {
+                    command = it.commands
+                    true
+                },
+            times(1)
+        )
+        command?.applicationId shouldBe APP_ID
+        command?.party shouldBe PARTY
+        command?.commandsList?.shouldHaveSingleElement(
+            ExerciseByKeyCommand(
+                Testament.TEMPLATE_ID,
+                DamlRecord(
+                    Field("_1", Party(GOVERNMENT)),
+                    Field("_2", Text(issuer)),
+                ),
+                "Revoke",
+                DamlRecord(),
+            ).toProtoCommand()
+        )
     }
 
     @Test
     fun `Should return not found for non-existing testament on revoke`() {
+        // given
+        val issuer = UUID.randomUUID().toString()
+        GrpcMock.stubFor(
+            unaryMethod(CommandServiceGrpc.getSubmitAndWaitMethod())
+                .willReturn(Status.NOT_FOUND)
+        )
+
+        // when+then
+        revokeTestament(issuer).statusCode(404)
     }
 
     private fun fetchTestament(issuer: String): ValidatableResponse =
@@ -315,5 +358,11 @@ class TestamentResourceTest {
             """.trimIndent()
             )
             .`when`().put("/testaments/{issuer}")
+            .then()
+
+    private fun revokeTestament(issuer: String): ValidatableResponse =
+        given()
+            .pathParam("issuer", issuer)
+            .`when`().delete("/testaments/{issuer}")
             .then()
 }
