@@ -1,0 +1,25 @@
+FROM digitalasset/daml-sdk:2.3.2 as codegen
+
+ADD contracts /contracts
+
+USER root
+
+WORKDIR /contracts
+RUN daml build
+RUN daml codegen java
+
+FROM amazoncorretto:17-alpine-jdk as build
+
+ADD provider-gateway /app-source
+COPY --from=codegen /contracts/.daml/java /app-source/build/generated/source/daml/main/
+
+WORKDIR /app-source
+RUN ./gradlew build -x damlBindings 
+
+FROM amazoncorretto:17-alpine
+
+RUN apk update && apk add jq curl
+
+COPY --from=build /app-source/build/quarkus-app /app
+
+ENTRYPOINT ["java", "-jar", "/app/quarkus-run.jar"]

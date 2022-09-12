@@ -215,7 +215,31 @@ services:
     networks:
       - local
 
-  # TODO: start provider gateway
+  gateway.provider:
+    build: 
+      context: .
+      dockerfile: network/Dockerfile.provider
+    image: daml/provider-gateway
+    ports:
+      - "8083:8080"
+    entrypoint: /scripts/start-provider.sh
+    environment:
+      - AUTH_SERVER_URL=http://auth.provider:8080
+      - JSON_API_URL=http://json.provider:7575/v1
+      - LEDGER_HOST=ledger.provider
+      - LEDGER_PASSWORD=providerpassword
+      - LEDGER_PORT=6000
+      - LEDGER_USER=provider
+    volumes:
+      - data:/data
+      - ./network/scripts:/scripts
+    networks:
+      - local
+    depends_on:
+      - auth.provider
+      - ledger.provider
+      - json.provider
+      - create-factory
 
   prepare-sql.bank:
     build: 

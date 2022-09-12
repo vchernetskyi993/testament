@@ -153,7 +153,7 @@ def fetch_factory(contract_id: str, jwt: str) -> Optional[dict]:
 
 
 def json_api_call(url: str, jwt: str, body: dict) -> dict:
-    retries = 10
+    retries = 20
     attempt = 0
     while attempt != retries:
         try:
