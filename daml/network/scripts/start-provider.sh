@@ -3,10 +3,8 @@ set -e
 
 MAX_WAIT=20
 ATTEMPTS=0
-FACTORY_CONFIG=/data/factory.json
 
-# FIXME: factory config from previos runs breaks this condition
-while [ ! -f $FACTORY_CONFIG ] || [ "$(curl -s -o /dev/null -w '%{http_code}' http://json.provider:7575/readyz)" != "200" ]; do
+while [ "$(ping -c 1 create-factory)" ]; do
   if [ $ATTEMPTS = $MAX_WAIT ]; then
     echo "Factory config is not ready. Exiting..."
     exit 1
@@ -17,6 +15,7 @@ while [ ! -f $FACTORY_CONFIG ] || [ "$(curl -s -o /dev/null -w '%{http_code}' ht
   fi
 done
 
+FACTORY_CONFIG=/data/factory.json
 FACTORY_CONTRACT_ID=$(cat $FACTORY_CONFIG | jq -r .contractId)
 export FACTORY_CONTRACT_ID
 GOVERNMENT_PARTY=$(cat $FACTORY_CONFIG | jq -r .parties.government)
