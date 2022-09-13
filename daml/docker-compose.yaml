@@ -120,6 +120,7 @@ services:
     environment:
       - PARTICIPANT_USER=govadmin
       - PARTICIPANT_PASSWORD=govadminpassword
+      - ALLOWED_ORIGINS=localhost:3000
     networks:
       - local
 
