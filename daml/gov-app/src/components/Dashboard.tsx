@@ -4,21 +4,25 @@ import Box from "@mui/material/Box";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import IconButton from "@mui/material/IconButton";
-import Badge from "@mui/material/Badge";
 import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
-import NotificationsIcon from "@mui/icons-material/Notifications";
 import Testaments from "./Testaments";
 import { useStreamQueries } from "@daml/react";
 import { Main } from "@daml.js/testament";
 import { TestamentData } from "../model";
 import React from "react";
+import UserIcon from "./UserIcon";
 
 const mdTheme = createTheme();
 
-function DashboardContent() {
+function DashboardContent({
+  username,
+  logout,
+}: {
+  username: string;
+  logout: () => void;
+}) {
   // TODO: add pending & active accounts structures
   const activeTestamentStream = useStreamQueries(
     Main.Testament.Testament
@@ -66,12 +70,10 @@ function DashboardContent() {
             >
               Dashboard
             </Typography>
-            {/* TODO: replace with user icon and logout */}
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="secondary">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
+            <UserIcon
+              username={username}
+              logout={logout}
+            />
           </Toolbar>
         </AppBar>
         <Box
@@ -102,6 +104,17 @@ function DashboardContent() {
   );
 }
 
-export default function Dashboard() {
-  return <DashboardContent />;
+export default function Dashboard({
+  username,
+  logout,
+}: {
+  username: string;
+  logout: () => void;
+}) {
+  return (
+    <DashboardContent
+      username={username}
+      logout={logout}
+    />
+  );
 }

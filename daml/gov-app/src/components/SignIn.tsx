@@ -11,20 +11,22 @@ import Container from "@mui/material/Container";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { login } from "../auth";
 import React from "react";
+import { UserData } from "../model";
 
 const theme = createTheme();
 
 export default function SignIn({
-  setToken,
+  setUser,
 }: {
-  setToken: (token: string) => void;
+  setUser: (user: UserData) => void;
 }) {
   const [error, setError] = React.useState("");
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    login(data.get("username") as string, data.get("password") as string)
-      .then(setToken)
+    const username = data.get("username") as string;
+    login(username, data.get("password") as string)
+      .then((token) => setUser({ username, token }))
       .catch((error: AxiosError) => {
         if (error.response?.status === 401) {
           setError("Invalid credentials!");

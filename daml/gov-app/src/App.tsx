@@ -2,20 +2,24 @@ import React from "react";
 import Dashboard from "./components/Dashboard";
 import SignIn from "./components/SignIn";
 import DamlLedger from "@daml/react";
+import { UserData } from "./model";
 
 function App() {
-  const [token, setToken] = React.useState<string | undefined>();
+  const [user, setUser] = React.useState<UserData | null>(null);
 
-  if (!token) {
-    return <SignIn setToken={setToken} />;
+  if (!user) {
+    return <SignIn setUser={setUser} />;
   }
 
   const party =
     process.env.REACT_APP_DAML_PARTY ??
     error("REACT_APP_DAML_PARTY is required");
   return (
-    <DamlLedger token={token} party={party}>
-      <Dashboard />
+    <DamlLedger token={user.token} party={party}>
+      <Dashboard
+        username={user.username}
+        logout={() => setUser(null)}
+      />
     </DamlLedger>
   );
 }
