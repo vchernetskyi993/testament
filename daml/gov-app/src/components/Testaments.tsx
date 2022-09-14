@@ -47,6 +47,7 @@ export default function Testaments({
                   <Button
                     variant="contained"
                     disabled={testament.status !== "Active"}
+                    // TODO: announce
                   >
                     Announce
                   </Button>

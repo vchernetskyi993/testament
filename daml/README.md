@@ -24,16 +24,3 @@ Repo consists of 6 directories:
 
 Docker compose configuration is provided. 
 So, to start all services issue `docker compose up`. Batteries included.
-
-## Development resources
-
-### Government
-
-https://www.npmjs.com/package/@daml/react  
-https://docs.daml.com/app-dev/bindings-ts/daml2js.html
-
-
-#### Nginx
-
-https://hub.docker.com/_/nginx  
-http://nginx.org/en/docs/beginners_guide.html#conf_structure

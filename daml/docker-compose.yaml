@@ -124,7 +124,34 @@ services:
     networks:
       - local
 
-  # TODO: setup nginx.gov
+  ui-builder:
+    build: 
+      dockerfile: network/Dockerfile.ui
+    image: daml/ui
+    command: /scripts/build-ui.sh
+    environment:
+      - REACT_APP_AUTH_SERVER_URL=http://localhost:8080
+    volumes:
+      - ./network/scripts/build-ui.sh:/scripts/build-ui.sh
+      - ./gov-app:/app/gov-app
+      - ./contracts:/app/contracts
+      - data:/data
+    networks:
+      - local
+    depends_on:
+      - create-factory
+
+  nginx.gov:
+    image: nginx:1.23.1
+    ports:
+      - "3000:80"
+    volumes:
+      - ./network/configs/nginx.conf:/etc/nginx/nginx.conf
+      - ./gov-app/build:/data/www
+    networks:
+      - local
+    depends_on:
+      - ui-builder
 
   prepare-sql.provider:
     build: 
