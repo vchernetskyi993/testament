@@ -1,3 +1,4 @@
+import { useLedger } from "@daml/react";
 import Button from "@mui/material/Button";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -7,12 +8,24 @@ import TableRow from "@mui/material/TableRow";
 import React from "react";
 import { TestamentData } from "../model";
 import Title from "./Title";
+import { Main } from "@daml.js/testament";
+import { ContractId } from "@daml/types";
 
 export default function Testaments({
   testaments,
 }: {
   testaments: Map<string, TestamentData>;
 }) {
+  const ledger = useLedger();
+  const factoryId = process.env.REACT_APP_FACTORY_ID;
+  const announce = async (issuer: string) => {
+    await ledger.exercise(
+      Main.Factory.TestamentFactory.AnnounceExecution,
+      factoryId as ContractId<Main.Factory.TestamentFactory>,
+      { issuer }
+    );
+  };
+
   return (
     <React.Fragment>
       <Title>Testaments</Title>
@@ -47,7 +60,7 @@ export default function Testaments({
                   <Button
                     variant="contained"
                     disabled={testament.status !== "Active"}
-                    // TODO: announce
+                    onClick={() => announce(testament.issuer)}
                   >
                     Announce
                   </Button>
