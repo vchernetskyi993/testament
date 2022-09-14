@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@daml.js/testament": "file:daml.js/contracts-0.1.0",
+    "@daml.js/testament": "file:src/daml.js/contracts-0.1.0",
     "@daml/react": "^2.3.4",
     "@emotion/react": "^11.10.4",
     "@emotion/styled": "^11.10.4",
@@ -41,6 +41,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "proxy": "http://localhost:7575"
+  }
 }
