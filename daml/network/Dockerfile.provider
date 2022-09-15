@@ -11,9 +11,12 @@ RUN daml codegen java
 FROM amazoncorretto:17-alpine-jdk as build
 
 ADD provider-gateway /app-source
-COPY --from=codegen /contracts/.daml/java /app-source/build/generated/source/daml/main/
 
 WORKDIR /app-source
+RUN ./gradlew clean
+
+COPY --from=codegen /contracts/.daml/java /app-source/build/generated/source/daml/main/java
+
 RUN ./gradlew build -x damlBindings 
 
 FROM amazoncorretto:17-alpine

@@ -14,7 +14,7 @@ import DA.Map (Map)
 import DA.Map as M (toList)
 import DA.Optional (fromSomeNote)
 import Main.Account (
-  Account(Account, bank, government, holder, posession),
+  Account(Account, bank, government, holder, possession),
  )
 import Main.Testament (
   assertNotAnnounced, 
@@ -78,11 +78,11 @@ template TestamentFactory
           forA_ (M.toList testament.inheritors) \(id, share) ->
             do
               let
-                inherited = issuerAccount.posession * share / 10000
+                inherited = issuerAccount.possession * share / 10000
 
               optionalAccountId <- lookupByKey @Account (bank, id)
-              inheritorPosession <- case optionalAccountId of
-                Some accountId -> fetch accountId <&> posession
+              inheritorPossession <- case optionalAccountId of
+                Some accountId -> fetch accountId <&> possession
                 None -> pure 0
 
               case optionalAccountId of
@@ -91,12 +91,12 @@ template TestamentFactory
 
               create Account with 
                 holder = id
-                posession = inheritorPosession + inherited
+                possession = inheritorPossession + inherited
                 bank
                 government
 
           archive issuerAccountId
-          void $ create issuerAccount with posession = 0
+          void $ create issuerAccount with possession = 0
 
           archive testamentId
           create testament with executed = True

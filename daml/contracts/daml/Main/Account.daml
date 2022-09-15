@@ -13,7 +13,7 @@ import Main.Util (contains, isNotBlank)
 template Account 
   with
     holder : Text
-    posession : Int
+    possession : Int
     bank : Party
     government : Party
   where
@@ -22,7 +22,7 @@ template Account
     key (bank, holder) : (Party, Text)
     maintainer key._1
 
-    ensure posession >= 0
+    ensure possession >= 0
 
     nonconsuming choice AddFunds : ContractId Account with
        amount : Int
@@ -34,14 +34,14 @@ template Account
             None -> pure ()
           
           archive self 
-          create this with posession = posession + amount
+          create this with possession = possession + amount
     
     nonconsuming choice WithdrawFunds : ContractId Account with
        amount : Int
      controller bank
         do          
           archive self 
-          create this with posession = posession - amount      
+          create this with possession = possession - amount      
 
 
 template CreateAccount
@@ -62,6 +62,6 @@ template CreateAccount
         do
           create Account with
             holder
-            posession = 0
+            possession = 0
             bank
             government

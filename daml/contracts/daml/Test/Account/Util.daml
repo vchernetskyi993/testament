@@ -8,7 +8,7 @@ module Test.Account.Util (
 
 import Daml.Script (createCmd, exerciseCmd, Script)
 import Main.Account (
-  Account(Account, bank, government, holder, posession),
+  Account(Account, bank, government, holder, possession),
   CreateAccount(bank, CreateAccount, government, holder), 
   SignAccountCreation(SignAccountCreation),
   AddFunds(AddFunds, amount),
@@ -50,6 +50,6 @@ fundIssuerAccount = fundAccount validIssuer
 validAccount : Party -> Party -> Account
 validAccount bank government = Account with 
   holder = "1"
-  posession = 0
+  possession = 0
   bank
   government

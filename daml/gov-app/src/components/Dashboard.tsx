@@ -9,6 +9,7 @@ import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Testaments from "./Testaments";
 import { useStreamQueries } from "@daml/react";
+import { ContractId } from "@daml/types";
 import { Main } from "@daml.js/testament";
 import { TestamentData } from "../model";
 import React from "react";
@@ -23,34 +24,10 @@ function DashboardContent({
   username: string;
   logout: () => void;
 }) {
-  // TODO: add pending & active accounts structures
-  const activeTestamentStream = useStreamQueries(
-    Main.Testament.Testament
-  ).contracts;
-  const testamentsByIssuer = React.useMemo(
-    () =>
-      activeTestamentStream
-        .map((event) => event.payload)
-        .map((testament) => ({
-          issuer: testament.issuer,
-          inheritors: testament.inheritors
-            .entriesArray()
-            .reduce(
-              (result, [i, s]) => result.set(i, +s),
-              new Map<string, number>()
-            ),
-          status: testament.executed
-            ? "Executed"
-            : testament.announced
-            ? "Announced"
-            : "Active",
-        }))
-        .reduce(
-          (result, testament) => result.set(testament.issuer, testament),
-          new Map<string, TestamentData>()
-        ),
-    [activeTestamentStream]
-  );
+  const testaments = useTestaments();
+  const pendingAccounts = usePendingAccounts();
+  const activeAccounts = useActiveAccounts();
+
   return (
     <ThemeProvider theme={mdTheme}>
       <Box sx={{ display: "flex" }}>
@@ -70,10 +47,7 @@ function DashboardContent({
             >
               Dashboard
             </Typography>
-            <UserIcon
-              username={username}
-              logout={logout}
-            />
+            <UserIcon username={username} logout={logout} />
           </Toolbar>
         </AppBar>
         <Box
@@ -93,7 +67,11 @@ function DashboardContent({
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <Paper sx={{ p: 2, display: "flex", flexDirection: "column" }}>
-                  <Testaments testaments={testamentsByIssuer} />
+                  <Testaments
+                    testaments={testaments}
+                    pendingAccounts={pendingAccounts}
+                    activeAccounts={activeAccounts}
+                  />
                 </Paper>
               </Grid>
             </Grid>
@@ -104,6 +82,57 @@ function DashboardContent({
   );
 }
 
+function useTestaments(): Map<string, TestamentData> {
+  const stream = useStreamQueries(Main.Testament.Testament).contracts;
+  return React.useMemo(
+    () =>
+      stream
+        .map((event) => event.payload)
+        .map((testament) => ({
+          issuer: testament.issuer,
+          inheritors: testament.inheritors
+            .entriesArray()
+            .reduce(
+              (result, [i, s]) => result.set(i, +s),
+              new Map<string, number>()
+            ),
+          status: testament.executed
+            ? "Executed"
+            : testament.announced
+            ? "Announced"
+            : "Active",
+        }))
+        .reduce(
+          (result, testament) => result.set(testament.issuer, testament),
+          new Map<string, TestamentData>()
+        ),
+    [stream]
+  );
+}
+
+function usePendingAccounts(): Map<
+  string,
+  ContractId<Main.Account.CreateAccount>
+> {
+  const stream = useStreamQueries(Main.Account.CreateAccount).contracts;
+  return React.useMemo(
+    () =>
+      new Map(stream.map((event) => [event.payload.holder, event.contractId])),
+    [stream]
+  );
+}
+
+function useActiveAccounts(): Map<string, number> {
+  const stream = useStreamQueries(Main.Account.Account).contracts;
+  return React.useMemo(
+    () =>
+      new Map(
+        stream.map((event) => [event.payload.holder, +event.payload.possession])
+      ),
+    [stream]
+  );
+}
+
 export default function Dashboard({
   username,
   logout,
@@ -111,10 +140,5 @@ export default function Dashboard({
   username: string;
   logout: () => void;
 }) {
-  return (
-    <DashboardContent
-      username={username}
-      logout={logout}
-    />
-  );
+  return <DashboardContent username={username} logout={logout} />;
 }

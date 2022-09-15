@@ -21,12 +21,12 @@ _should_add_funds = do
   -- when
   updated <- submit bank do
     exerciseCmd account $ AddFunds with 
-      amount = posession
+      amount = possession
 
   -- then
   Some actualAccount <- queryContractId government updated
   
-  assertEq actualAccount $ (validAccount bank government) with posession
+  assertEq actualAccount $ (validAccount bank government) with possession
 
 
 _only_bank_should_add_funds : Script ()
@@ -38,7 +38,7 @@ _only_bank_should_add_funds = do
   -- when
   submitMustFail government do
     exerciseCmd account $ AddFunds with 
-      amount = posession
+      amount = possession
 
 
 
@@ -52,7 +52,7 @@ _should_not_add_funds_to_announced_account = do
   -- when
   submitMustFail bank do
     exerciseCmd account $ AddFunds with 
-      amount = posession
+      amount = possession
 
 
-posession = 1000
+possession = 1000

@@ -52,7 +52,6 @@ allOpen {
 tasks.compileKotlin {
     kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
     kotlinOptions.javaParameters = true
-    dependsOn("damlBindings")
 }
 
 task<Exec>("damlBindings") {

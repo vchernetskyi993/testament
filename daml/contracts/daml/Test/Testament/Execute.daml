@@ -4,7 +4,7 @@ module Test.Testament.Execute () where
 import Daml.Script (exerciseCmd, queryContractId, queryContractKey, Script)
 import DA.Action (void)
 import DA.Assert (assertEq)
-import Main.Account (Account(Account, bank, holder, government, posession))
+import Main.Account (Account(Account, bank, holder, government, possession))
 import Main.Factory (
   AnnounceExecution(AnnounceExecution, issuer),
   ExecuteTestament(ExecuteTestament, issuer),
@@ -31,15 +31,15 @@ _should_execute_testament : Script ()
 _should_execute_testament = do
   -- given
   let
-    initialPosession = 3000
+    initialPossession = 3000
     [(firstInheritor, firstInheritorShare), 
      (secondInheritor, secondInheritorShare)] = validInheritors
-    secondInheritorPosession = 1500
-    addedPosession share = initialPosession * share / 10000
+    secondInheritorPossession = 1500
+    addedPossession share = initialPossession * share / 10000
 
   parties@(TestParties { .. }) <- allocateParties
-  void $ fundIssuerAccount bank government initialPosession
-  void $ fundAccount secondInheritor bank government secondInheritorPosession
+  void $ fundIssuerAccount bank government initialPossession
+  void $ fundAccount secondInheritor bank government secondInheritorPossession
 
   factory <- createValidFactory parties
   void $ issueValidTestament factory provider
@@ -60,19 +60,19 @@ _should_execute_testament = do
 
   Some (_, actualAccount) <- queryContractKey @Account government (bank, validIssuer)
 
-  assertEq actualAccount $ (validAccount bank government) with posession = 0
+  assertEq actualAccount $ (validAccount bank government) with possession = 0
 
   Some (_, firstInheritorAccount) <- queryContractKey @Account government (bank, firstInheritor)
   assertEq firstInheritorAccount $ Account with 
     holder = firstInheritor
-    posession = addedPosession firstInheritorShare
+    possession = addedPossession firstInheritorShare
     bank
     government
 
   Some (_, secondInheritorAccount) <- queryContractKey @Account government (bank, secondInheritor)
   assertEq secondInheritorAccount $ Account with 
     holder = secondInheritor
-    posession = secondInheritorPosession + addedPosession secondInheritorShare
+    possession = secondInheritorPossession + addedPossession secondInheritorShare
     bank
     government   
 

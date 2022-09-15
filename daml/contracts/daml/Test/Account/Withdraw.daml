@@ -21,7 +21,7 @@ _should_withdraw_funds = do
   -- then
   Some actualAccount <- queryContractId government updated
   
-  assertEq actualAccount $ (validAccount bank government) with posession = 500
+  assertEq actualAccount $ (validAccount bank government) with possession = 500
 
 
 _should_withdraw_all_funds : Script ()
@@ -37,7 +37,7 @@ _should_withdraw_all_funds = do
   -- then
   Some actualAccount <- queryContractId government updated
   
-  assertEq actualAccount $ (validAccount bank government) with posession = 0
+  assertEq actualAccount $ (validAccount bank government) with possession = 0
 
 
 _should_not_withdraw_below_zero : Script ()
