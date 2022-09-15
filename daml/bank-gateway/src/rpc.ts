@@ -24,16 +24,21 @@ function methods(): { [method: string]: SimpleJSONRPCMethod } {
         bank,
         government,
       });
-      return Promise.resolve({ contractId });
+      return { contractId };
     },
 
     /**
-     *
-     * @param args
+     * Store some amount of funds to holder account.
+     * @param args { holder: string; amount: string; }
      */
-    storeFunds(args): void {
-      const { message } = args as { message: string };
-      console.log(message);
+    async storeFunds(args): Promise<void> {
+      const { holder, amount } = args as { holder: string; amount: string };
+      const ledger = await connectLedger();
+      await ledger.exerciseByKey(
+        Main.Account.Account.AddFunds,
+        { _1: bank, _2: holder },
+        { amount }
+      );
     },
 
     /**
