@@ -1,9 +1,6 @@
-import dotenv from "dotenv";
+import config from "./src/config";
 import { expressServer } from "./src/server";
 
-dotenv.config();
-
-const port = process.env.SERVER_PORT;
-expressServer().listen(port, () => {
-  console.log(`Server is listening on ${port}`);
+expressServer().listen(config.port, () => {
+  console.log(`Server is listening on ${config.port}`);
 });

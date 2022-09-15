@@ -4,12 +4,15 @@
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/index.js",
-    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\""
+    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q --inspect=0.0.0.0:9229 dist/index.js\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@daml.js/testament": "file:src/daml.js/contracts-0.1.0",
+    "@daml/ledger": "^2.3.4",
+    "axios": "^0.27.2",
     "body-parser": "^1.20.0",
     "dotenv": "^16.0.2",
     "express": "^4.18.1",
