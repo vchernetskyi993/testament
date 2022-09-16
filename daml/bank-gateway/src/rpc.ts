@@ -21,7 +21,7 @@ type AccountUpdate = {
 
 type HolderData = {
   possession: string;
-  testament: {
+  testament?: {
     inheritors: { [inheritor: string]: number };
     announced: boolean;
     executed: boolean;
@@ -87,20 +87,20 @@ function methods(): { [method: string]: SimpleJSONRPCMethod } {
         .fetchByKey(Main.Account.Account, { _1: bank, _2: holder })
         .then((event) => event?.payload!!);
 
-      const { inheritors, announced, executed } = await ledger
+      const testament = await ledger
         .fetchByKey(Main.Testament.Testament, { _1: government, _2: holder })
-        .then((event) => event?.payload!!);
+        .then((event) => event?.payload);
 
       return {
         holder,
         possession,
-        testament: {
+        testament: testament ? {
           inheritors: Object.fromEntries(
-            inheritors.entriesArray().map(([i, s]) => [i, +s])
+            testament.inheritors.entriesArray().map(([i, s]) => [i, +s])
           ),
-          announced,
-          executed,
-        },
+          announced: testament.announced,
+          executed: testament.executed,
+        } : undefined,
       };
     },
 
