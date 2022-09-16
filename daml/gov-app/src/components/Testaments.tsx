@@ -64,7 +64,6 @@ export default function Testaments({
           {Array.from(testaments.values()).map((testament) => (
             <TableRow key={testament.issuer}>
               <TableCell>{testament.issuer}</TableCell>
-              {/* TODO: set possession from accounts map */}
               <TableCell width="25%">
                 {pendingAccounts.has(testament.issuer) ? (
                   <div>
