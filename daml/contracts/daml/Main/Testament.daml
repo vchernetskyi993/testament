@@ -55,7 +55,7 @@ assertNotAnnounced : Testament -> Update ()
 assertNotAnnounced testament = do
   assertMsg "Execution should not be announced" $ not testament.announced
 
-
+-- TODO: should not inherit themselves
 validateInheritors : CanAssert m => Map Text Int -> m ()
 validateInheritors inheritors = do
   assertMsg "Inheritors are not valid" $ 

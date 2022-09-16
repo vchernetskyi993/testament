@@ -1,0 +1,23 @@
+FROM digitalasset/daml-sdk:2.3.2 as codegen
+
+ADD contracts /contracts
+
+USER root
+
+WORKDIR /contracts
+RUN daml build
+RUN daml codegen js
+
+FROM node:18.9.0-alpine as build
+
+ADD bank-gateway /app
+
+COPY --from=codegen /contracts/.daml/js /app/src/daml.js
+
+WORKDIR /app
+RUN npm i -g
+RUN npx tsc
+
+RUN apk update && apk add jq
+
+ENTRYPOINT ["node", "/app/dist/index.js"]

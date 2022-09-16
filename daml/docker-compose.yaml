@@ -359,7 +359,30 @@ services:
     networks:
       - local
 
-  # TODO: start bank gateway
+  gateway.bank:
+    build: 
+      context: .
+      dockerfile: network/Dockerfile.bank
+    image: daml/bank-gateway
+    ports:
+      - "4200:4200"
+    entrypoint: /scripts/start-bank.sh
+    environment:
+      - SERVER_PORT=4200
+      - DAML_JSON_API_URL=http://json.bank:7575/
+      - AUTH_SERVER_URL=http://auth.bank:8080
+      - AUTH_SERVER_USERNAME=bankadmin
+      - AUTH_SERVER_PASSWORD=bankadminpassword
+    volumes:
+      - data:/data
+      - ./network/scripts:/scripts
+    networks:
+      - local
+    depends_on:
+      - auth.bank
+      - ledger.bank
+      - json.bank
+      - create-factory
 
   create-factory:
     build: 
