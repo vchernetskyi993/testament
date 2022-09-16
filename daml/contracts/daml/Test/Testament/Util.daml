@@ -37,7 +37,8 @@ invalidInheritors =
    [("2", 4000), ("  ", 6000)], -- blank inheritor
    [("2", 4000), ("3", 6111)], -- shares > 10000
    [("2", 3000), ("3", 6000)], -- shares < 10000
-   []] -- inheritors empty
+   [], -- inheritors empty
+   [("1", 3000), ("3", 7000)]] -- inheritor is issuer
 
 
 validTestament : TestParties -> Testament

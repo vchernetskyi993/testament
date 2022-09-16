@@ -20,6 +20,7 @@ import Main.Testament (
   assertNotAnnounced, 
   Testament(announced, bank, executed, government, inheritors, issuer, provider, Testament),
   validateInheritors,
+  assertIssuerIsNotInheritor,
  )
 import Main.Util (contains, isNotBlank)
 
@@ -40,6 +41,8 @@ template TestamentFactory
         do 
           assertMsg "Issuer should not be blank" $ isNotBlank issuer
           validateInheritors inheritors
+
+          assertIssuerIsNotInheritor issuer inheritors
 
           create Testament with 
             issuer

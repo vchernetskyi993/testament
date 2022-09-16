@@ -4,6 +4,7 @@ module Main.Testament (
   Revoke(..),
   assertNotAnnounced,
   validateInheritors,
+  assertIssuerIsNotInheritor,
 ) where
 
 import DA.Map (Map)
@@ -33,6 +34,8 @@ template Testament
         do
           validateInheritors updatedInheritors
 
+          assertIssuerIsNotInheritor issuer updatedInheritors
+
           assertMsg "Inheritors should differ from existing" $ 
             updatedInheritors /= inheritors
 
@@ -61,3 +64,7 @@ validateInheritors inheritors = do
   assertMsg "Inheritors are not valid" $ 
     all isNotBlank (M.keys inheritors)
     && sum (M.values inheritors) == 10000
+
+assertIssuerIsNotInheritor : Text -> Map Text Int -> Update ()
+assertIssuerIsNotInheritor issuer inheritors =
+  assertMsg "Issuer should not be inheritor" $ not $ M.member issuer inheritors
