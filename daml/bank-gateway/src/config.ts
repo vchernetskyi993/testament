@@ -15,6 +15,7 @@ const appConfig = {
     node: {
       url: process.env.DAML_JSON_API_URL ?? required("DAML_JSON_API_URL"),
     },
+    factoryId: process.env.DAML_FACTORY_ID ?? required("DAML_FACTORY_ID"),
     parties: {
       bank: process.env.DAML_BANK_PARTY ?? required("DAML_BANK_PARTY"),
       government:

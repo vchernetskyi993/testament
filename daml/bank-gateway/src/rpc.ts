@@ -1,23 +1,43 @@
 import { Main } from "@daml.js/testament";
+import { ContractId } from "@daml/types";
 import { JSONRPCServer, SimpleJSONRPCMethod } from "json-rpc-2.0";
 import { ledger as connectLedger } from "./ledger";
 import config from "./config";
 
 const {
   daml: {
+    factoryId,
     parties: { bank, government },
   },
 } = config;
+
+type HolderId = {
+  holder: string;
+};
+
+type AccountUpdate = {
+  amount: string;
+} & HolderId;
+
+type HolderData = {
+  possession: string;
+  testament: {
+    inheritors: { [inheritor: string]: number };
+    announced: boolean;
+    executed: boolean;
+  };
+} & HolderId;
 
 function methods(): { [method: string]: SimpleJSONRPCMethod } {
   return {
     /**
      * Propose bank account creation.
      * Government party should approve created account before adding funds to it.
-     * @param args { holder: string }
+     * @param args HolderId
+     * @returns contract id of account proposal
      */
     async createAccount(args): Promise<{ contractId: string }> {
-      const { holder } = args as { holder: string };
+      const { holder } = args as HolderId;
       const ledger = await connectLedger();
       const { contractId } = await ledger.create(Main.Account.CreateAccount, {
         holder,
@@ -29,10 +49,10 @@ function methods(): { [method: string]: SimpleJSONRPCMethod } {
 
     /**
      * Store some amount of funds to holder account.
-     * @param args { holder: string; amount: string; }
+     * @param args Account
      */
     async storeFunds(args): Promise<void> {
-      const { holder, amount } = args as { holder: string; amount: string };
+      const { holder, amount } = args as AccountUpdate;
       const ledger = await connectLedger();
       await ledger.exerciseByKey(
         Main.Account.Account.AddFunds,
@@ -42,30 +62,60 @@ function methods(): { [method: string]: SimpleJSONRPCMethod } {
     },
 
     /**
-     *
-     * @param args
+     * Withdraw some amount from holder account.
+     * @param args Account
      */
-    withdrawFunds(args): void {
-      const { message } = args as { message: string };
-      console.log(message);
+    async withdrawFunds(args): Promise<void> {
+      const { holder, amount } = args as AccountUpdate;
+      const ledger = await connectLedger();
+      await ledger.exerciseByKey(
+        Main.Account.Account.WithdrawFunds,
+        { _1: bank, _2: holder },
+        { amount }
+      );
     },
 
     /**
-     *
-     * @param args
+     * Fetch account data.
+     * @param args HolderId
+     * @returns HolderData
      */
-    fetchAccount(args): void {
-      const { message } = args as { message: string };
-      console.log(message);
+    async fetchAccount(args): Promise<HolderData> {
+      const { holder } = args as HolderId;
+      const ledger = await connectLedger();
+      const { possession } = await ledger
+        .fetchByKey(Main.Account.Account, { _1: bank, _2: holder })
+        .then((event) => event?.payload!!);
+
+      const { inheritors, announced, executed } = await ledger
+        .fetchByKey(Main.Testament.Testament, { _1: government, _2: holder })
+        .then((event) => event?.payload!!);
+
+      return {
+        holder,
+        possession,
+        testament: {
+          inheritors: Object.fromEntries(
+            inheritors.entriesArray().map(([i, s]) => [i, +s])
+          ),
+          announced,
+          executed,
+        },
+      };
     },
 
     /**
-     *
-     * @param args
+     * Execute announced testament.
+     * @param args HolderId
      */
-    executeTestament(args): void {
-      const { message } = args as { message: string };
-      console.log(message);
+    async executeTestament(args): Promise<void> {
+      const { holder } = args as HolderId;
+      const ledger = await connectLedger();
+      await ledger.exercise(
+        Main.Factory.TestamentFactory.ExecuteTestament,
+        factoryId as ContractId<Main.Factory.TestamentFactory>,
+        { issuer: holder }
+      );
     },
   };
 }
