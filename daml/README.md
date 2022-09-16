@@ -3,7 +3,8 @@
 [Ethereum Testament](../ethereum/) ported to Daml. 
 Personal sample repo to learn different Daml&Canton features.
 
-<!-- TODO: add diagram -->
+![diagram](./diagram.png)
+[Excalidraw source](./diagram.excalidraw)
 
 Network consists of 3 organizations:
 
