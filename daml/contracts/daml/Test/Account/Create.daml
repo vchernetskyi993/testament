@@ -19,8 +19,7 @@ _should_create_account = do
   proposal <- submit bank do
     createCmd $ CreateAccount with 
       holder = "1"
-      bank
-      government
+      ..
 
   account <- submit government do
     exerciseCmd proposal SignAccountCreation
@@ -57,8 +56,8 @@ _only_government_should_sign_creation = do
   submitMustFail bank do
     createCmd $ CreateAccount with 
       holder = "1"
-      bank = bank
       government = bank
+      ..
 
 
 _should_validate_holder : Script ()
@@ -70,12 +69,10 @@ _should_validate_holder = do
   submitMustFail bank do
     createCmd $ CreateAccount with 
       holder = ""
-      bank
-      government
+      ..
 
   -- blank holder
   submitMustFail bank do
     createCmd $ CreateAccount with 
       holder = "  "
-      bank
-      government
+      ..

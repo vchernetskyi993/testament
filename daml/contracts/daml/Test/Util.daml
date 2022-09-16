@@ -39,10 +39,7 @@ allocateParties = do
   government <- allocateParty "Government"
   bank <- allocateParty "Bank"
 
-  return $ TestParties with 
-    provider
-    government
-    bank
+  return $ TestParties with ..
 
 
 issueValidTestament : ContractId TestamentFactory -> Party -> Script (ContractId Testament)
@@ -67,10 +64,7 @@ createValidFactory parties@(TestParties { government, provider }) = do
 
 
 validFactoryProposal : TestParties -> NewFactoryProposal
-validFactoryProposal TestParties { .. } = NewFactoryProposal with 
-  provider = provider 
-  government = government
-  bank = bank
+validFactoryProposal TestParties { .. } = NewFactoryProposal with ..
 
 
 validIssuer : Text

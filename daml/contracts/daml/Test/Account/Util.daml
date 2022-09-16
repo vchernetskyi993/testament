@@ -21,10 +21,7 @@ import Test.Util (
 createAccount : Text -> Party -> Party -> Script (ContractId Account)
 createAccount holder bank government = do
   proposal <- submit bank do
-    createCmd $ CreateAccount with 
-      holder
-      bank
-      government
+    createCmd $ CreateAccount with ..
 
   submit government do
     exerciseCmd proposal SignAccountCreation
@@ -51,5 +48,4 @@ validAccount : Party -> Party -> Account
 validAccount bank government = Account with 
   holder = "1"
   possession = 0
-  bank
-  government
+  ..

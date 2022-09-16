@@ -20,19 +20,16 @@ _should_validate_factory_proposal_input = do
   submitMustFail provider do
     createCmd $ NewFactoryProposal with 
       provider = government 
-      government = government
-      bank = bank
+      ..
 
   -- invalid government
   submitMustFail provider do
-    createCmd $ NewFactoryProposal with 
-      provider = provider 
+    createCmd $ NewFactoryProposal with       
       government = bank
-      bank = bank
+      ..
 
   -- invalid bank
   submitMustFail provider do
     createCmd $ NewFactoryProposal with 
-      provider = provider 
-      government = government
       bank = provider
+      ..

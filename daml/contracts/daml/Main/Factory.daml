@@ -45,13 +45,9 @@ template TestamentFactory
           assertIssuerIsNotInheritor issuer inheritors
 
           create Testament with 
-            issuer
-            inheritors
-            provider
-            government
-            bank
             announced = False
             executed = False
+            ..
 
     nonconsuming choice AnnounceExecution : ContractId Testament with
       issuer : Text
@@ -96,8 +92,7 @@ template TestamentFactory
               create Account with 
                 holder = id
                 possession = inheritorPossession + inherited
-                bank
-                government
+                ..
 
           archive issuerAccountId
           void $ create issuerAccount with possession = 0
@@ -131,4 +126,4 @@ template NewFactoryProposal
     choice CreateFactory : ContractId TestamentFactory
      controller government
         do
-          create TestamentFactory with provider, government, bank
+          create TestamentFactory with ..

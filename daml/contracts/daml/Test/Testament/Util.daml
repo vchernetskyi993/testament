@@ -45,8 +45,6 @@ validTestament : TestParties -> Testament
 validTestament TestParties { provider, government, bank } = Testament with 
   issuer = validIssuer
   inheritors = M.fromList validInheritors
-  provider
-  government
-  bank
   announced = False
   executed = False
+  ..

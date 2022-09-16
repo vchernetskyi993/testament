@@ -61,7 +61,5 @@ template CreateAccount
      controller government
         do
           create Account with
-            holder
             possession = 0
-            bank
-            government
+            ..

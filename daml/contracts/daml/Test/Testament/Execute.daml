@@ -72,8 +72,7 @@ _should_execute_testament = do
   assertEq secondInheritorAccount $ Account with 
     holder = secondInheritor
     possession = secondInheritorPossession + addedPossession secondInheritorShare
-    bank
-    government   
+    ..
 
 
 _only_bank_should_execute_testament : Script ()
