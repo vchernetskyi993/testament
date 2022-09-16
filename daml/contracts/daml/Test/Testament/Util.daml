@@ -13,7 +13,7 @@ import Main.Testament (
 import Test.Util (
   createValidFactory,
   issueValidTestament,
-  TestParties(provider, TestParties), 
+  TestParties(bank, government, provider, TestParties), 
   validInheritors, 
   validIssuer,
  )
@@ -40,12 +40,12 @@ invalidInheritors =
    []] -- inheritors empty
 
 
-validTestament : Party -> Party -> Testament
-validTestament provider government = Testament with 
+validTestament : TestParties -> Testament
+validTestament TestParties { provider, government, bank } = Testament with 
   issuer = validIssuer
   inheritors = M.fromList validInheritors
   provider
   government
-  bank = None
+  bank
   announced = False
   executed = False

@@ -77,6 +77,5 @@ _should_not_revoke_announced = do
   Some (_, actualTestament) <- queryContractKey 
     @Testament provider (government, validIssuer)
 
-  assertEq actualTestament $ (validTestament provider government) with 
+  assertEq actualTestament $ (validTestament parties) with 
     announced = True
-    bank = Some bank

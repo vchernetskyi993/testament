@@ -53,9 +53,8 @@ _should_execute_testament = do
   -- then
   Some actualTestament <- queryContractId provider executedId
 
-  assertEq actualTestament (validTestament provider government) with 
+  assertEq actualTestament (validTestament parties) with 
     announced = True
-    bank = Some bank
     executed = True
 
   Some (_, actualAccount) <- queryContractKey @Account government (bank, validIssuer)

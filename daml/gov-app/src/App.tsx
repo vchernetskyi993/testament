@@ -11,6 +11,8 @@ function App() {
     return <SignIn setUser={setUser} />;
   }
 
+  // TODO: auto logout on token expiration
+
   const party =
     process.env.REACT_APP_DAML_PARTY ??
     error("REACT_APP_DAML_PARTY is required");

@@ -47,7 +47,7 @@ _should_update = do
 
   assertEq 
     actualTestament 
-    (validTestament provider government) with 
+    (validTestament parties) with 
       inheritors = updatedInheritorsValue
 
 

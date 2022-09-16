@@ -42,9 +42,8 @@ _should_announce = do
 
   assertEq 
     actualTestament 
-    (validTestament provider government) with 
+    (validTestament parties) with 
       announced = True
-      bank = Some bank
 
 
 _only_government_should_announce : Script ()

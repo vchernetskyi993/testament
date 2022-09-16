@@ -44,9 +44,9 @@ template TestamentFactory
           create Testament with 
             issuer
             inheritors
-            provider = provider
-            government = government
-            bank = None
+            provider
+            government
+            bank
             announced = False
             executed = False
 
@@ -61,13 +61,14 @@ template TestamentFactory
           archive testamentId
           create testament with
             announced = True
-            bank = Some bank
 
     nonconsuming choice ExecuteTestament : ContractId Testament with
       issuer : Text
      controller bank
         do
           (testamentId, testament) <- fetchTestament (government, issuer)
+
+          assertMsg "Should be announced" testament.announced
 
           assertMsg "Should not be executed" $ not testament.executed
 

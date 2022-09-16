@@ -17,14 +17,12 @@ template Testament
     inheritors : Map Text Int
     provider : Party
     government : Party
-    bank : Optional Party
+    bank : Party
     announced : Bool
     executed : Bool
   where
     signatory provider, government
-    observer case bank of
-      Some b -> [b]
-      None -> []
+    observer bank
 
     key (government, issuer) : (Party, Text)
     maintainer key._1

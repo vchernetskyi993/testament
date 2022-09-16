@@ -32,7 +32,7 @@ _should_issue_testament = do
   -- then
   Some actualTestament <- queryContractId government testament
   
-  assertEq actualTestament $ validTestament provider government
+  assertEq actualTestament $ validTestament parties
 
 
 _should_validate_proposal : Script ()
@@ -84,4 +84,4 @@ _should_issue_after_revoke = do
   -- then
   Some actualTestament <- queryContractId government newTestamentId
   
-  assertEq actualTestament $ validTestament provider government
+  assertEq actualTestament $ validTestament parties

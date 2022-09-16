@@ -20,10 +20,8 @@ export REACT_APP_DAML_PARTY
 REACT_APP_FACTORY_ID=$(jq -r .contractId < /data/factory.json)
 export REACT_APP_FACTORY_ID
 
-cd /app/contracts
-daml build
-daml codegen js
-
 cd /app/gov-app
+./codegen.sh
+
 npm i --force
 npm run build

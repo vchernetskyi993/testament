@@ -88,7 +88,7 @@ export default function Testaments({
                 {Array.from(testament.inheritors.entries()).map(
                   ([id, share]) => (
                     <p key={id}>
-                      {id}: {share}
+                      {id}: {share / 100}%
                     </p>
                   )
                 )}
