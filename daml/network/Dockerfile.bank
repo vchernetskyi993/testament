@@ -15,9 +15,9 @@ ADD bank-gateway /app
 COPY --from=codegen /contracts/.daml/js /app/src/daml.js
 
 WORKDIR /app
-RUN npm i -g
+RUN npm i
 RUN npx tsc
 
 RUN apk update && apk add jq
 
-ENTRYPOINT ["node", "/app/dist/index.js"]
+ENTRYPOINT ["node", "dist/index.js"]
