@@ -142,3 +142,20 @@ npx mocha
 # specific test
 npx mocha --grep "Should issue testament"
 ```
+
+## AWS Deployment
+
+1. Deploy AMB Ethereum node: `cd network-aws && cdk deploy`
+
+2. Start proxy locally: `cd network-aws/proxy && npm start`
+
+https://docs.aws.amazon.com/cdk/api/v1/docs/aws-apigatewayv2-readme.html
+https://www.npmjs.com/package/aws4-proxy
+https://www.npmjs.com/package/http-proxy-middleware
+https://www.npmjs.com/package/aws4
+
+3. Deploy contract: ...
+
+4. Start console: ...
+
+5. Interact with a contract: ...

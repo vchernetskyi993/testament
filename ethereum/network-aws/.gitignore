@@ -1,0 +1,9 @@
+build
+.gradle
+.idea
+.vscode
+*.iml
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
