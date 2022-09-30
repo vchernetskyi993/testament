@@ -18,5 +18,4 @@ application {
 dependencies {
     implementation("software.amazon.awscdk:aws-cdk-lib:2.44.0")
     implementation("software.constructs:constructs:10.1.116")
-    implementation("software.amazon.awscdk:apigatewayv2:1.175.0")
 }
