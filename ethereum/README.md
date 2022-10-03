@@ -147,15 +147,29 @@ npx mocha --grep "Should issue testament"
 
 1. Deploy AMB Ethereum node: `cd network-aws && cdk deploy`
 
-2. Start proxy locally: `cd network-aws/proxy && npm start`
+2. Set `AWS_ETHEREUM_HTTP_ENDPOINT` in [network-aws/proxy/.env](./network-aws/proxy/.env) to AMB Ethereum http endpoint. 
+See [aws network readme](./network-aws/README.md) on details how to retrieve it.
 
-https://docs.aws.amazon.com/cdk/api/v1/docs/aws-apigatewayv2-readme.html
-https://www.npmjs.com/package/aws4-proxy
-https://www.npmjs.com/package/http-proxy-middleware
-https://www.npmjs.com/package/aws4
+3. Start proxy locally: `cd network-aws/proxy && npm i && npm start`
 
-3. Deploy contract: ...
+4. Set correct `GOERLI_ACCOUNT_PRIVATE_KEY` in [.env](./.env)
 
-4. Start console: ...
+5. Deploy contract: `npx hardhat run scripts/deploy.ts --network aws`
 
-5. Interact with a contract: ...
+6. Start console: `npx hardhat console --network aws`
+
+7. Interact with a contract:
+
+```javascript
+// contract address from step 3
+const contractAddress = "0xe42a4018Df69cc4830Bdf99252763d4DD00f266B";
+
+const [signer] = await ethers.getSigners();
+const factory = await ethers.getContractFactory("Testament", signer);
+const testament = await factory.attach(contractAddress);
+
+// usage is the same as for local network, see examples from there
+// note, however, that here you'll have as many signers as you specified 
+// in hardhat.config.ts in `networks.aws.accounts` (1 by default)
+await testament.balanceOf(signer.address, testament.GOLD());
+```

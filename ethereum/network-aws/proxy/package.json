@@ -1,0 +1,16 @@
+{
+  "name": "proxy",
+  "version": "0.1.0",
+  "description": "AWS Ethereum node proxy",
+  "scripts": {
+    "start": "npx tsc && node dist/index.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "aws4-proxy": "^0.1.8",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^4.8.4"
+  }
+}
