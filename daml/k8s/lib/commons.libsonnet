@@ -8,7 +8,14 @@ local servicePort = k.core.v1.servicePort;
   service: {
     new(deployment, port)::
       util.serviceFor(deployment)
-      + service.spec.withPorts(servicePort.new(port, port))
+      + service.spec.withPorts(
+        if std.isArray(port)
+        then std.map(
+          function(p) servicePort.newNamed(p.name, p.port, p.port),
+          port
+        )
+        else servicePort.new(port, port)
+      )
       + service.spec.withType('NodePort'),
   },
 }
