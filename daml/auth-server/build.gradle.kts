@@ -29,6 +29,7 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
     implementation("io.ktor:ktor-server-cors:$ktor_version")
     implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("cc.rbbl:ktor-health-check:2.0.0")
 
     implementation("com.nimbusds:nimbus-jose-jwt:9.24.3")
 

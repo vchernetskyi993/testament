@@ -1,8 +1,10 @@
 package com.example
 
+import cc.rbbl.ktor_health_check.Health
 import com.example.plugins.configureCors
 import com.example.plugins.configureRouting
 import io.ktor.server.application.Application
+import io.ktor.server.application.install
 
 fun main(args: Array<String>) {
     io.ktor.server.netty.EngineMain.main(args)
@@ -12,4 +14,5 @@ fun main(args: Array<String>) {
 fun Application.module() {
     configureRouting(environment.config.getCredentials())
     configureCors()
+    install(Health)
 }

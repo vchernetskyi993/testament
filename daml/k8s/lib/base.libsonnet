@@ -1,8 +1,9 @@
 local commons = import 'commons.libsonnet';
+local postgres = import 'components/postgres.libsonnet';
 local k = import 'k.libsonnet';
-local postgres = import 'postgres.libsonnet';
 local tk = import 'tk';
 local domainConf = importstr 'configs/domain.conf';
+local auth = import 'components/auth.libsonnet';
 
 local namespace = k.core.v1.namespace;
 local deployment = k.apps.v1.deployment;
@@ -15,8 +16,14 @@ local volume = k.core.v1.volume;
 {
   platform(
     govPostgresPassword='postgres',
+    govAuthUser='govadmin',
+    govAuthPassword='govadminpassword',
     providerPostgresPassword='postgres',
+    providerAuthUser='provider',
+    providerAuthPassword='providerpassword',
     bankPostgresPassword='postgres',
+    bankAuthUser='bankadmin',
+    bankAuthPassword='bankadminpassword',    
   ):: {
     namespace: namespace.new(tk.env.spec.namespace),
 
@@ -65,7 +72,12 @@ local volume = k.core.v1.volume;
     },
     'ledger.gov': {},  // << contract-builder
     'json.gov': {},
-    'auth.gov': {},
+    'auth.gov': auth.new(
+      image=$._config.authServer.image,
+      org='gov',
+      user=govAuthUser,
+      password=govAuthPassword,
+    ),
     'nginx.gov': {},  // << ui-builder
 
     // Provider
@@ -77,7 +89,12 @@ local volume = k.core.v1.volume;
     ),
     'ledger.provider': {},  // << contract-builder
     'json.provider': {},
-    'auth.provider': {},
+    'auth.provider': auth.new(
+      image=$._config.authServer.image,
+      org='provider',
+      user=providerAuthUser,
+      password=providerAuthPassword,
+    ),
     'gateway.provider': {},
 
     // Bank
@@ -89,7 +106,12 @@ local volume = k.core.v1.volume;
     ),
     'ledger.bank': {},  // << contract-builder
     'json.bank': {},
-    'auth.bank': {},
+    'auth.bank': auth.new(
+      image=$._config.authServer.image,
+      org='bank',
+      user=bankAuthUser,
+      password=bankAuthPassword,
+    ),
     'gateway.bank': {},
 
     // depends on all services above; can be done using k8s?

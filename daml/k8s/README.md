@@ -1,3 +1,15 @@
+Build images:
+
+```shell
+docker build ../auth-server/ -t testament/auth-server
+```
+
+Load images to Minikube:
+
+```shell
+minikube image load testament/auth-server
+```
+
 Deploy with defaults:
 
 ```shell
