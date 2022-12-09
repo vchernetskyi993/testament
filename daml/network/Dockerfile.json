@@ -1,6 +1,6 @@
 FROM amazoncorretto:17-alpine
 
 ADD https://github.com/digital-asset/daml/releases/download/v2.3.3/http-json-2.3.3.jar json.jar
-ADD configs/json-node.conf node.conf
+ADD configs/json-node.conf /node.conf
 
-CMD [ "java", "-jar", "json.jar", "-c", "node.conf" ]
+CMD [ "java", "-jar", "json.jar", "-c", "/node.conf" ]

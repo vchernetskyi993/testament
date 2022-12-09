@@ -42,7 +42,7 @@ local volumeProjection = k.core.v1.volumeProjection;
           envVar.new('POSTGRES_USER', '%s_ledger' % participant),
           envVar.new('POSTGRES_DB', '%s_ledger' % participant),
           envVar.new('POSTGRES_PASSWORD', '%s_ledger' % participant),
-          envVar.new('DOMAIN_URL', 'http://$(DOMAIN_SERVICE_HOST):$(DOMAIN_SERVICE_PORT)'),
+          envVar.new('DOMAIN_URL', 'http://$(DOMAIN_SERVICE_HOST):$(DOMAIN_SERVICE_PORT_PUBLIC)'),
           envVar.new('PARTICIPANT_NAME', participant),
           envVar.fromSecretRef('PARTICIPANT_USER', auth.secretName(org), 'PARTICIPANT_USER'),
           envVar.new(

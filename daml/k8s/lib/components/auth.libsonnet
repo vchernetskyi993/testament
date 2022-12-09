@@ -3,7 +3,6 @@ local k = import 'k.libsonnet';
 
 local deployment = k.apps.v1.deployment;
 local container = k.core.v1.container;
-local envVar = k.core.v1.envVar;
 local secret = k.core.v1.secret;
 local secretRef = k.core.v1.envFromSource.secretRef;
 

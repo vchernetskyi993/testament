@@ -1,6 +1,7 @@
 local commons = import 'commons.libsonnet';
 local auth = import 'components/auth.libsonnet';
 local domain = import 'components/domain.libsonnet';
+local json = import 'components/json.libsonnet';
 local ledger = import 'components/ledger.libsonnet';
 local postgres = import 'components/postgres.libsonnet';
 local k = import 'k.libsonnet';
@@ -36,7 +37,11 @@ local namespace = k.core.v1.namespace;
       org='gov',
       participant='government',
     ),
-    'json.gov': {},
+    'json.gov': json.new(
+      image=$._config.json.image,
+      org='gov',
+      participant='government'
+    ),
     'auth.gov': auth.new(
       image=$._config.authServer.image,
       org='gov',

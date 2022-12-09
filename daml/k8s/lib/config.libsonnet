@@ -12,5 +12,8 @@
     ledger: {
       image: 'testament/ledger',
     },
+    json: {
+      image: 'testament/json',
+    },
   },
 }
