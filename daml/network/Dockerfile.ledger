@@ -1,0 +1,20 @@
+FROM digitalasset/daml-sdk:2.3.2 as build
+
+ADD contracts /contracts
+
+USER root
+
+WORKDIR /contracts
+RUN daml build
+
+FROM digitalasset/canton-open-source:2.3.3
+
+COPY --from=build /contracts/.daml/dist/contracts-0.1.0.dar /contracts.dar
+
+ENTRYPOINT "/canton/bin/canton" "daemon" \
+    "-c" "/configs/features.conf,/configs/participant.conf" \
+    "-Ddomain.url=$DOMAIN_URL", \
+    "-Dparticipant.name=$PARTICIPANT_NAME" \
+    "-Dparticipant.user=$PARTICIPANT_USER" \
+    "-Ddar.path=/contracts.dar" \
+    "--bootstrap" "/scripts/participant.scala"

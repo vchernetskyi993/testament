@@ -9,5 +9,8 @@
     authServer: {
       image: 'testament/auth-server',
     },
+    ledger: {
+      image: 'testament/ledger',
+    },
   },
 }

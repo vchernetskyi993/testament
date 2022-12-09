@@ -1,8 +1,10 @@
+local commons = import 'commons.libsonnet';
+local auth = import 'components/auth.libsonnet';
+local domain = import 'components/domain.libsonnet';
+local ledger = import 'components/ledger.libsonnet';
 local postgres = import 'components/postgres.libsonnet';
 local k = import 'k.libsonnet';
 local tk = import 'tk';
-local auth = import 'components/auth.libsonnet';
-local domain = import 'components/domain.libsonnet';
 
 local namespace = k.core.v1.namespace;
 
@@ -16,9 +18,10 @@ local namespace = k.core.v1.namespace;
     providerAuthPassword='providerpassword',
     bankPostgresPassword='postgres',
     bankAuthUser='bankadmin',
-    bankAuthPassword='bankadminpassword',    
+    bankAuthPassword='bankadminpassword',
   ):: {
     namespace: namespace.new(tk.env.spec.namespace),
+    cantonConfigMap: commons.canton.configMap,
 
     // Government
     'postgres.gov': postgres.new(
@@ -28,7 +31,11 @@ local namespace = k.core.v1.namespace;
       databases=['domain', 'government_ledger', 'government_json'],
     ),
     domain: domain.new($._config.canton.image),
-    'ledger.gov': {},  // << contract-builder
+    'ledger.gov': ledger.new(
+      image=$._config.ledger.image,
+      org='gov',
+      participant='government',
+    ),
     'json.gov': {},
     'auth.gov': auth.new(
       image=$._config.authServer.image,
@@ -45,7 +52,11 @@ local namespace = k.core.v1.namespace;
       password=providerPostgresPassword,
       databases=['provider_ledger', 'provider_json'],
     ),
-    'ledger.provider': {},  // << contract-builder
+    'ledger.provider': ledger.new(
+      image=$._config.ledger.image,
+      org='provider',
+      participant='provider',
+    ),
     'json.provider': {},
     'auth.provider': auth.new(
       image=$._config.authServer.image,
@@ -62,7 +73,11 @@ local namespace = k.core.v1.namespace;
       password=bankPostgresPassword,
       databases=['bank_ledger', 'bank_json'],
     ),
-    'ledger.bank': {},  // << contract-builder
+    'ledger.bank': ledger.new(
+      image=$._config.ledger.image,
+      org='bank',
+      participant='bank',
+    ),
     'json.bank': {},
     'auth.bank': auth.new(
       image=$._config.authServer.image,

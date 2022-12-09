@@ -8,15 +8,20 @@ local envVar = k.core.v1.envVar;
 local configMap = k.core.v1.configMap;
 local volumeMount = k.core.v1.volumeMount;
 local volume = k.core.v1.volume;
+local volumeProjection = k.core.v1.volumeProjection;
 
 {
   new(image):: {
-    config: configMap.new('domain-config', {
+    local appName = 'domain',
+    local configName = 'domain-config',
+    local configsVolumeName = 'domain-configs-volume',
+
+    config: configMap.new(configName, {
       'domain.conf': domainConf,
     }),
     deployment:
-      deployment.new('domain', replicas=3, containers=[
-        container.new('domain', image)
+      deployment.new(appName, replicas=3, containers=[
+        container.new(appName, image)
         + container.withCommand([
           'bin/canton',
           'daemon',
@@ -31,15 +36,16 @@ local volume = k.core.v1.volume;
           envVar.new('POSTGRES_PASSWORD', 'domain'),
         ])
         + container.withVolumeMounts([
-          volumeMount.new('domain-configs-volume', '/configs'),
+          volumeMount.new(configsVolumeName, '/configs'),
         ])
-        + container.livenessProbe.httpGet.withPath('/health')
-        + container.livenessProbe.httpGet.withPort(7000)
-        + container.livenessProbe.withInitialDelaySeconds(10)
-        + container.livenessProbe.withPeriodSeconds(3),
+        + commons.canton.nodeHealth,
       ])
       + deployment.spec.template.spec.withVolumes([
-        volume.fromConfigMap('domain-configs-volume', 'domain-config'),
+        volume.withName(configsVolumeName)
+        + volume.projected.withSources([
+          volumeProjection.configMap.withName(configName),
+          volumeProjection.configMap.withName(commons.canton.configMapName),
+        ]),
       ]),
     service: commons.service.new(self.deployment, [
       { name: 'public', port: 5000 },
